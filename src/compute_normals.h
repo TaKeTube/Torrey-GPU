@@ -1,7 +1,7 @@
 #pragma once
 
-#include "torrey.h"
-#include "vector.h"
+#include "torrey.cuh"
+#include "vector.cuh"
 #include <vector>
 
 /// Given a pool of vertices and a triangle mesh defined on it,

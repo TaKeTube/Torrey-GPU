@@ -1,12 +1,13 @@
 #pragma once
-#include "vector.h"
-#include "parse_scene.h"
+#include"vector.cuh"
+#include"parse_scene.h"
 
-struct Camera {
-    Vector3 lookfrom;
-    Vector3 lookat;
-    Vector3 up;
-    Real vfov;
+struct Camera
+{
+	Vector3 lookfrom;
+	Vector3 lookat;
+	Vector3 ip;
+	double vfov;
 };
 
-Camera from_parsed_camera(const ParsedCamera &pc);
+Camera from_parsed_camera(const ParsedCamera& pc);
