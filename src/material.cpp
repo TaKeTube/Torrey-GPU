@@ -1,26 +1,26 @@
 #include "material.h"
 
-__device__ std::optional<SampleRecord> sample_bsdf_Diffuse(const Diffuse &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
-__device__ std::optional<SampleRecord> sample_bsdf_Mirror(const Mirror &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
-__device__ std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
-__device__ std::optional<SampleRecord> sample_bsdf_Phong(const BlinnPhong &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
-__device__ std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
-__device__ std::optional<SampleRecord> sample_bsdf_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const Intersection &v, const TexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_Diffuse(const Diffuse &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_Mirror(const Mirror &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_Phong(const BlinnPhong &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
+__device__ std::optional<SampleRecord> sample_bsdf_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const Intersection &v, const DeviceTexturePool &texture_pool, RNGf &rng);
 
-__device__ Real sample_bsdf_pdf_Diffuse(const Diffuse &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
-__device__ Real sample_bsdf_pdf_Mirror(const Mirror &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
-__device__ Real sample_bsdf_pdf_Plastic(const Plastic &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
-__device__ Real sample_bsdf_pdf_Phong(const Phong &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
-__device__ Real sample_bsdf_pdf_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
-__device__ Real sample_bsdf_pdf_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const TexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_Diffuse(const Diffuse &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_Mirror(const Mirror &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_Plastic(const Plastic &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_Phong(const Phong &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Real sample_bsdf_pdf_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const Vector3 &dir_out, const Intersection &v, const DeviceTexturePool &texture_pool);
 
 
-__device__ Vector3 eval_material_Diffuse(const Diffuse &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
-__device__ Vector3 eval_material_Mirror(const Mirror &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
-__device__ Vector3 eval_material_Plastic(const Plastic &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
-__device__ Vector3 eval_material_Phong(const Phong &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
-__device__ Vector3 eval_material_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
-__device__ Vector3 eval_material_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const TexturePool &texture_pool);
+__device__ Vector3 eval_material_Diffuse(const Diffuse &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Vector3 eval_material_Mirror(const Mirror &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Vector3 eval_material_Plastic(const Plastic &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Vector3 eval_material_Phong(const Phong &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Vector3 eval_material_BlinnPhong(const BlinnPhong &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
+__device__ Vector3 eval_material_BlinnPhongMicrofacet(const BlinnPhongMicrofacet &m, const Vector3 &dir_in, const SampleRecord &record, const Intersection &v, const DeviceTexturePool &texture_pool);
 
 #include "materials/diffuse.inl"
 #include "materials/mirror.inl"
@@ -32,7 +32,7 @@ __device__ Vector3 eval_material_BlinnPhongMicrofacet(const BlinnPhongMicrofacet
 __device__ std::optional<SampleRecord> sample_bsdf(const Material &material,
                                                    const Vector3 &dir_in,
                                                    const Intersection &v,
-                                                   const TexturePool &texture_pool,
+                                                   const DeviceTexturePool &texture_pool,
                                                    RNGf &rng) {
     if(auto *m = std::get_if<Diffuse>(&material))
         return sample_bsdf_Diffuse(*m, dir_in, v, texture_pool, rng);
@@ -54,7 +54,7 @@ __device__ Real get_bsdf_pdf(const Material &material,
                              const Vector3 &dir_in,
                              const Vector3 &dir_out,
                              const Intersection &v,
-                             const TexturePool &texture_pool) {
+                             const DeviceTexturePool &texture_pool) {
     if(auto *m = std::get_if<Diffuse>(&material))
         return sample_bsdf_pdf_Diffuse(*m, dir_in, dir_out, v, texture_pool);
     else if(auto *m = std::get_if<Mirror>(&material))
@@ -75,7 +75,7 @@ __device__ Vector3 eval(const Material &material,
                         const Vector3 &dir_in,
                         const SampleRecord &record,
                         const Intersection &v,
-                        const TexturePool &texture_pool) {
+                        const DeviceTexturePool &texture_pool) {
     if(auto *m = std::get_if<Diffuse>(&material))
         return eval_material_Diffuse(*m, dir_in, record, v, texture_pool);
     else if(auto *m = std::get_if<Mirror>(&material))

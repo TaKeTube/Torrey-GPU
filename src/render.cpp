@@ -101,16 +101,11 @@ Image3 render(const std::vector<std::string> &params)
     build_bvh(scene);
     std::cout << "Finish building BVH. Took " << tick(timer) << " seconds." << std::endl;
 
-    constexpr int tile_size = 16;
-    int num_tiles_x = (img.width + tile_size - 1) / tile_size;
-    int num_tiles_y = (img.height + tile_size - 1) / tile_size;
-    ProgressReporter reporter(num_tiles_x * num_tiles_y);
-
     std::cout << "Rendering..." << std::endl;
     tick(timer);
 
     // Device Memory Init
-    deviceScene device_scene = device_scene_init(scene);
+    auto [device_scene, free_info] = device_scene_init(scene);
     Vector3* deviceImg;
     cudaMalloc((void **)&deviceImg, img.height * img.width * sizeof(Vector3));
 
@@ -121,17 +116,18 @@ Image3 render(const std::vector<std::string> &params)
     // Run kernel
     render_kernel<<<DimGrid, DimBlock>>>(scene, sceneInfo, deviceImg);
 
+    // Checking Errors
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) 
         printf("Error: %s\n", cudaGetErrorString(err));
-    cudaDeviceSynchronize();    
+    cudaDeviceSynchronize();
 
     // Copy the device image back to the host
     cudaMemcpy(img.data.data(), deviceImg, img.height * img.width * sizeof(Vector3), cudaMemcpyDeviceToHost);
 
     // Free device memory
     cudaFree(deviceImg);
-    device_scene_destruct(device_scene);
+    device_scene_destruct(device_scene, free_info);
 
     std::cout << std::endl
               << "Finish building rendering. Took " << tick(timer) << " seconds." << std::endl;
