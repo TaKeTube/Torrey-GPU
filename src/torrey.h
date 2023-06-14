@@ -14,21 +14,22 @@
 #include <random>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "rng.h"
 
 // for suppressing unused warnings
 #define UNUSED(x) (void)(x)
 
-#define c_EPSILON 1e-7
+// #define c_EPSILON 1e-7
 
-// Lots of PIs!
-#define c_PI 3.14159265358979323846
-#define c_INVPI (1.0 / c_PI)
-#define c_TWOPI (2.0 * c_PI)
-#define c_INVTWOPI (1.0 / c_TWOPI)
-#define c_FOURPI (4.0 * c_PI)
-#define c_INVFOURPI (1.0 / c_FOURPI)
-#define c_PIOVERTWO (0.5 * c_PI)
-#define c_PIOVERFOUR (0.25 * c_PI)
+// // Lots of PIs!
+// #define c_PI 3.14159265358979323846
+// #define c_INVPI (1.0 / c_PI)
+// #define c_TWOPI (2.0 * c_PI)
+// #define c_INVTWOPI (1.0 / c_TWOPI)
+// #define c_FOURPI (4.0 * c_PI)
+// #define c_INVFOURPI (1.0 / c_FOURPI)
+// #define c_PIOVERTWO (0.5 * c_PI)
+// #define c_PIOVERFOUR (0.25 * c_PI)
 
 // We use double for most of our computation.
 // Rendering is usually done in single precision Reals.
@@ -40,17 +41,20 @@
 // just set Real = float.
 using Real = double;
 
-// const Real c_EPSILON = 1e-7;
+constexpr int TILE_WIDTH = 16;
+constexpr int STACK_SIZE = 64;
 
-// // Lots of PIs!
-// const Real c_PI = Real(3.14159265358979323846);
-// const Real c_INVPI = Real(1.0) / c_PI;
-// const Real c_TWOPI = Real(2.0) * c_PI;
-// const Real c_INVTWOPI = Real(1.0) / c_TWOPI;
-// const Real c_FOURPI = Real(4.0) * c_PI;
-// const Real c_INVFOURPI = Real(1.0) / c_FOURPI;
-// const Real c_PIOVERTWO = Real(0.5) * c_PI;
-// const Real c_PIOVERFOUR = Real(0.25) * c_PI;
+constexpr Real c_EPSILON = 1e-7;
+
+// Lots of PIs!
+constexpr Real c_PI = Real(3.14159265358979323846);
+constexpr Real c_INVPI = Real(1.0) / c_PI;
+constexpr Real c_TWOPI = Real(2.0) * c_PI;
+constexpr Real c_INVTWOPI = Real(1.0) / c_TWOPI;
+constexpr Real c_FOURPI = Real(4.0) * c_PI;
+constexpr Real c_INVFOURPI = Real(1.0) / c_FOURPI;
+constexpr Real c_PIOVERTWO = Real(0.5) * c_PI;
+constexpr Real c_PIOVERFOUR = Real(0.25) * c_PI;
 
 template <typename T>
 inline T infinity() {
@@ -96,12 +100,4 @@ __host__ __device__ inline Real radians(const Real deg) {
 
 __host__ __device__ inline Real degrees(const Real rad) {
     return (Real(180) / c_PI) * rad;
-}
-
-__host__ __device__ inline double random_double(std::mt19937 &rng) {
-    return std::uniform_real_distribution<double>{0.0, 1.0}(rng);
-}
-
-__host__ __device__ inline int random_int(int min, int max, std::mt19937 &rng) {
-    return static_cast<int>(min + (max - min) * random_double(rng));
 }

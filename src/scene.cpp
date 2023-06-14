@@ -42,7 +42,7 @@ Scene::Scene(const ParsedScene &scene) : camera(from_parsed_camera(scene.camera)
             // Extract all the individual triangles
             for (int face_index = 0; face_index < (int)parsed_mesh->indices.size(); face_index++)
             {
-                shapes.push_back(Triangle{face_index, &meshes[tri_mesh_count], parsed_mesh->area_light_id});
+                shapes.push_back(Triangle{face_index, tri_mesh_count, parsed_mesh->area_light_id});
             }
             tri_mesh_count++;
         }
@@ -230,33 +230,6 @@ Scene::Scene(const ParsedScene &scene) : camera(from_parsed_camera(scene.camera)
             }
         }
     }
-
-    std::vector<Real> power(lights.size());
-    for (int i = 0; i < (int)lights.size(); i++) {
-        power[i] = light_power(*this, lights[i]);
-    }
-    std::vector<Real>& pmf = power;
-    std::vector<Real> cdf(power.size() + 1);
-    cdf[0] = 0;
-    for (int i = 0; i < (int)power.size(); i++) {
-        assert(pmf[i] >= 0);
-        cdf[i + 1] = cdf[i] + pmf[i];
-    }
-    Real total = cdf.back();
-    if (total > 0) {
-        for (int i = 0; i < (int)pmf.size(); i++) {
-            pmf[i] /= total;
-            cdf[i] /= total;
-        }
-    } else {
-        for (int i = 0; i < (int)pmf.size(); i++) {
-            pmf[i] = Real(1) / Real(pmf.size());
-            cdf[i] = Real(i) / Real(pmf.size());
-        }
-        cdf.back() = 1;
-    }
-    lights_power_pmf = std::move(pmf);
-    lights_power_cdf = std::move(cdf);
 }
 
 void build_bvh(Scene& scene) {
@@ -267,7 +240,7 @@ void build_bvh(Scene& scene) {
             Vector3 p_max = sph->center + sph->radius;
             bboxes[i] = {BBox{p_min, p_max}, i};
         } else if (auto *tri = std::get_if<Triangle>(&scene.shapes[i])) {
-            const TriangleMesh *mesh = tri->mesh;
+            const TriangleMesh *mesh = &scene.meshes[tri->mesh_id];
             Vector3i index = mesh->indices[tri->face_index];
             Vector3 p0 = mesh->positions[index[0]];
             Vector3 p1 = mesh->positions[index[1]];
@@ -280,9 +253,9 @@ void build_bvh(Scene& scene) {
     scene.bvh_root_id = construct_bvh(bboxes, scene.bvh_nodes);
 }
 
-std::optional<Intersection> bvh_intersect(const Scene &scene, const BVHNode &node, Ray ray) {
+__device__ std::optional<Intersection> bvh_intersect(const deviceScene& scene, const BVHNode &node, Ray ray) {
     if (node.primitive_id != -1) {
-        return std::visit(intersect_op{ray}, scene.shapes[node.primitive_id]);
+        return intersect_shape(scene, scene.shapes[node.primitive_id], ray);
     }
     const BVHNode &left = scene.bvh_nodes[node.left_node_id];
     const BVHNode &right = scene.bvh_nodes[node.right_node_id];
@@ -304,103 +277,36 @@ std::optional<Intersection> bvh_intersect(const Scene &scene, const BVHNode &nod
     return isect_left;
 }
 
-std::optional<Intersection> scene_intersect(const Scene& scene, const Ray& r){
-    if(!scene.bvh_nodes.empty()){
+__device__ std::optional<Intersection> scene_intersect(const deviceScene& scene, const Ray& r){
+    if(nullptr != scene.bvh_nodes){
         return bvh_intersect(scene, scene.bvh_nodes[scene.bvh_root_id], r);
-        // Intersection v;
-        // scene.bvh->intersect(r, v);
-        // return v;
     }else{
-        // Traverse
-        Real t = infinity<Real>();
-        Intersection v = {};
-        for(auto& s:scene.shapes){
-            std::optional<Intersection> v_ = std::visit(intersect_op{r}, s);
-            if(v_ && v_->t < t){
-                t = v_->t;
-                v = *v_;
-            }
-        }
-        if(t < infinity<Real>())
-            return v;
-        else
-            return {};
+        return {};
     }
 }
 
-bool scene_occluded(const Scene& scene, const Ray& r){
-    if(!scene.bvh_nodes.empty()){
+__device__ bool scene_occluded(const deviceScene& scene, const Ray& r){
+    if(nullptr != scene.bvh_nodes){
         std::optional<Intersection> v_ = bvh_intersect(scene, scene.bvh_nodes[scene.bvh_root_id], r);
         return v_ ? true : false;
         // Intersection v;
         // return scene.bvh->intersect(r, v);
     }else{
-        Real t = infinity<Real>();
-        for(auto& s:scene.shapes){
-            std::optional<Intersection> v_ = std::visit(intersect_op{r}, s);
-            if(v_ && v_->t < t)
-                t = v_->t;
-        }
-        return t < infinity<Real>();
+        return false;
     }
 }
 
-Vector3 trace_ray(const Scene& scene, const Ray& ray, std::mt19937& rng){
+__device__ Vector3 trace_ray(const deviceScene& scene, const sceneInfo& scene_info, const Ray& ray, RNGf& rng){
     Ray r = ray;
     std::optional<Intersection> v_ = scene_intersect(scene, r);
-    if(!v_) return scene.background_color;
+    if(!v_) return scene_info.background_color;
     Intersection v = *v_;
 
     Vector3 radiance = {Real(0), Real(0), Real(0)};
     Vector3 throughput = {Real(1), Real(1), Real(1)};
-    for(int i = 0; i <= scene.options.max_depth; ++i){
+    for(int i = 0; i <= scene_info.options.max_depth; ++i){
         if(v.area_light_id != -1) {
-            const Light& light = scene.lights.at(v.area_light_id);
-            if (auto* l = std::get_if<DiffuseAreaLight>(&light)){
-                radiance += throughput * l->intensity;
-                break;
-            }
-        } else {
-            Vector3 dir_in = -r.dir;
-            Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
-            std::optional<SampleRecord> record_ = sample_bsdf(scene.materials[v.material_id], dir_in, v, scene.textures, rng);
-            if(!record_){
-                // std::cout << "record break" << std::endl;
-                break;
-            }
-            SampleRecord& record = *record_;
-            Vector3 FG = eval(scene.materials[v.material_id], dir_in, record, v, scene.textures);
-            Vector3 dir_out = normalize(record.dir_out);
-            Real pdf = record.pdf;
-            if(pdf <= Real(0)){
-                // std::cout << "pdf break" << std::endl;
-                break;
-            }
-            throughput *= FG / pdf;
-            r = Ray{v.pos, dir_out, c_EPSILON, infinity<Real>()};
-            std::optional<Intersection> v_ = scene_intersect(scene, r);
-            if(!v_){
-                // std::cout << "bg break" << std::endl;
-                radiance += throughput * scene.background_color;
-                break;
-            }
-            v = *v_;
-        }
-    }
-    return radiance;
-}
-
-Vector3 trace_ray_MIS(const Scene& scene, const Ray& ray, std::mt19937& rng){
-    Ray r = ray;
-    std::optional<Intersection> v_ = scene_intersect(scene, r);
-    if(!v_) return scene.background_color;
-    Intersection v = *v_;
-
-    Vector3 radiance = {Real(0), Real(0), Real(0)};
-    Vector3 throughput = {Real(1), Real(1), Real(1)};
-    for(int i = 0; i <= scene.options.max_depth; ++i){
-        if(v.area_light_id != -1) {
-            const Light& light = scene.lights.at(v.area_light_id);
+            const Light& light = scene.lights[v.area_light_id];
             if (auto* l = std::get_if<DiffuseAreaLight>(&light)){
                 // std::cout << throughput << std::endl;
                 radiance += throughput * l->intensity;
@@ -415,7 +321,7 @@ Vector3 trace_ray_MIS(const Scene& scene, const Ray& ray, std::mt19937& rng){
         if(std::holds_alternative<Plastic>(m) || std::holds_alternative<Mirror>(m))
             is_specular = true;
         
-        if(scene.lights.size() > 0 && !is_specular && random_double(rng) <= 0.5){
+        if(scene.num_lights > 0 && !is_specular && random_double(rng) <= 0.5){
             // Sampling Light
             int light_id = sample_light(scene, rng);
             auto light = scene.lights[light_id];
@@ -425,7 +331,7 @@ Vector3 trace_ray_MIS(const Scene& scene, const Ray& ray, std::mt19937& rng){
                 Real d = length(light_pos - v.pos);
                 Vector3 light_dir = normalize(light_pos - v.pos);
 
-                Real light_pdf = get_light_pdf(scene, light_id, light_point, v.pos) * (d * d) / (fmax(dot(-light_n, light_dir), Real(0)) * scene.lights.size());
+                Real light_pdf = get_light_pdf(scene, light_id, light_point, v.pos) * (d * d) / (fmax(dot(-light_n, light_dir), Real(0)) * scene.num_lights);
                 if(light_pdf <= 0){
                     // std::cout << light_pdf << "light pdf break" << std::endl;
                     break;
@@ -444,7 +350,7 @@ Vector3 trace_ray_MIS(const Scene& scene, const Ray& ray, std::mt19937& rng){
                 std::optional<Intersection> v_ = scene_intersect(scene, r);
                 if(!v_){
                     // std::cout << "bg break" << std::endl;
-                    radiance += throughput * scene.background_color;
+                    radiance += throughput * scene_info.background_color;
                     break;
                 }
                 v = *v_;
@@ -472,128 +378,19 @@ Vector3 trace_ray_MIS(const Scene& scene, const Ray& ray, std::mt19937& rng){
             r = Ray{v.pos, dir_out, c_EPSILON, infinity<Real>()};
             std::optional<Intersection> new_v_ = scene_intersect(scene, r);
 
-            Real pdf = (scene.lights.empty() || is_specular) ? bsdf_pdf : 0.5 * bsdf_pdf;
+            Real pdf = ((nullptr == scene.lights) || is_specular) ? bsdf_pdf : 0.5 * bsdf_pdf;
 
             if(!new_v_){
                 // std::cout << "bg break" << std::endl;
                 throughput *= FG / pdf;
-                radiance += throughput * scene.background_color;
+                radiance += throughput * scene_info.background_color;
                 break;
             }
             if(!is_specular && new_v_->area_light_id != -1){
                 Vector3 &light_pos = new_v_->pos;
                 Real d = length(light_pos - v.pos);
                 Vector3 light_dir = normalize(light_pos - v.pos);
-                Real light_pdf = get_light_pdf(scene, new_v_->area_light_id, {new_v_->pos, new_v_->geo_normal}, v.pos) * (d * d) / (fmax(dot(-new_v_->geo_normal, light_dir), Real(0)) * scene.lights.size());
-                if(light_pdf <= 0){
-                    // std::cout << dot(-new_v_->geo_normal, light_dir) << std::endl;
-                    break;
-                }
-                pdf += 0.5 * light_pdf;
-            }
-            throughput *= FG / pdf;
-            v = *new_v_;
-        }
-    }
-    return radiance;
-}
-
-Vector3 trace_ray_MIS_power(const Scene& scene, const Ray& ray, std::mt19937& rng){
-    Ray r = ray;
-    std::optional<Intersection> v_ = scene_intersect(scene, r);
-    if(!v_) return scene.background_color;
-    Intersection v = *v_;
-
-    Real eta_scale = Real(1);
-    Vector3 radiance = {Real(0), Real(0), Real(0)};
-    Vector3 throughput = {Real(1), Real(1), Real(1)};
-    for(int i = 0; i <= scene.options.max_depth; ++i){
-        if(v.area_light_id != -1) {
-            const Light& light = scene.lights.at(v.area_light_id);
-            if (auto* l = std::get_if<DiffuseAreaLight>(&light)){
-                // std::cout << throughput << std::endl;
-                radiance += throughput * l->intensity;
-                break;
-            }
-        }
-
-        
-        Vector3 dir_in = -r.dir;
-        const Material& m = scene.materials[v.material_id];
-        bool is_specular = false;
-        if(std::holds_alternative<Plastic>(m) || std::holds_alternative<Mirror>(m))
-            is_specular = true;
-        
-        if(scene.lights.size() > 0 && !is_specular && random_double(rng) <= 0.5){
-            // Sampling Light
-            int light_id = sample_light_power(scene, rng);
-            auto light = scene.lights[light_id];
-            if (auto* l = std::get_if<DiffuseAreaLight>(&light)) {
-                auto& light_point = sample_on_light(scene, *l, v.pos, rng);
-                auto& [light_pos, light_n] = light_point;
-                Real d = length(light_pos - v.pos);
-                Vector3 light_dir = normalize(light_pos - v.pos);
-
-                Real light_pdf = get_light_pdf(scene, light_id, light_point, v.pos) * (d * d) * get_light_pmf(scene, light_id) / (fmax(dot(-light_n, light_dir), Real(0)));
-                if(light_pdf <= 0){
-                    // std::cout << light_pdf << "light pdf break" << std::endl;
-                    break;
-                }
-                Real bsdf_pdf = get_bsdf_pdf(m, dir_in, light_dir, v, scene.textures);
-                if(bsdf_pdf <= 0){
-                    // std::cout << "bsdf pdf break" << std::endl;
-                    break;
-                }
-                
-                SampleRecord record = {};
-                record.dir_out = light_dir;
-                Vector3 FG = eval(m, dir_in, record, v, scene.textures);
-
-                r = Ray{v.pos, light_dir, c_EPSILON, infinity<Real>()};
-                std::optional<Intersection> v_ = scene_intersect(scene, r);
-                if(!v_){
-                    // std::cout << "bg break" << std::endl;
-                    radiance += throughput * scene.background_color;
-                    break;
-                }
-                v = *v_;
-                if(v.area_light_id == -1){
-                    break;
-                }
-                throughput *= FG / (0.5 * light_pdf + 0.5 * bsdf_pdf);
-            }
-        }else{
-            // Sampling bsdf
-            Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
-            std::optional<SampleRecord> record_ = sample_bsdf(m, dir_in, v, scene.textures, rng);
-            if(!record_){
-                // std::cout << "record break" << std::endl;
-                break;
-            }
-            SampleRecord& record = *record_;
-            Vector3 FG = eval(m, dir_in, record, v, scene.textures);
-            Vector3 dir_out = normalize(record.dir_out);
-            Real bsdf_pdf = record.pdf;
-            if(bsdf_pdf <= Real(0)){
-                // std::cout << "pdf break" << std::endl;
-                break;
-            }
-            r = Ray{v.pos, dir_out, c_EPSILON, infinity<Real>()};
-            std::optional<Intersection> new_v_ = scene_intersect(scene, r);
-
-            Real pdf = (scene.lights.empty() || is_specular) ? bsdf_pdf : 0.5 * bsdf_pdf;
-
-            if(!new_v_){
-                // std::cout << "bg break" << std::endl;
-                throughput *= FG / pdf;
-                radiance += throughput * scene.background_color;
-                break;
-            }
-            if(!is_specular && new_v_->area_light_id != -1){
-                Vector3 &light_pos = new_v_->pos;
-                Real d = length(light_pos - v.pos);
-                Vector3 light_dir = normalize(light_pos - v.pos);
-                Real light_pdf = get_light_pdf(scene, new_v_->area_light_id, {new_v_->pos, new_v_->geo_normal}, v.pos) * (d * d) * get_light_pmf(scene, new_v_->area_light_id) / fmax(dot(-new_v_->geo_normal, light_dir), Real(0));
+                Real light_pdf = get_light_pdf(scene, new_v_->area_light_id, {new_v_->pos, new_v_->geo_normal}, v.pos) * (d * d) / (fmax(dot(-new_v_->geo_normal, light_dir), Real(0)) * scene.num_lights);
                 if(light_pdf <= 0){
                     // std::cout << dot(-new_v_->geo_normal, light_dir) << std::endl;
                     break;

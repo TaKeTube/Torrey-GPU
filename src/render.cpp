@@ -5,18 +5,69 @@
 #include "parallel.h"
 #include "progressreporter.h"
 
-Image3 render(const std::vector<std::string> &params) {
+__global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *img)
+{
+    int bx = blockIdx.x;
+    int by = blockIdx.y;
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
+    int x = bx * TILE_WIDTH + tx;
+    int y = by * TILE_WIDTH + ty;
+
+    if (x >= scene_info.width || y >= scene_info.height)
+        return;
+
+    // random number initialization
+    RNG<float> rng(y * scene_info.width + x);
+
+    // preparation for ray generation
+    Camera &cam = scene_info.camera;
+    RenderOptions &options = scene_info.options;
+    Real theta = cam.vfov / 180 * c_PI;
+    Real h = tan(theta / 2);
+    Real viewport_height = 2.0 * h;
+    Real viewport_width = viewport_height / scene_info.height * scene_info.width;
+
+    Vector3 w = normalize(cam.lookfrom - cam.lookat);
+    Vector3 u = normalize(cross(cam.up, w));
+    Vector3 v = cross(w, u);
+
+    Vector3 color = {0, 0, 0};
+    for (int i = 0; i < options.spp; i++)
+    {
+        Ray r = {cam.lookfrom,
+                 normalize(
+                     u * ((x + random_double(rng)) / scene_info.width - Real(0.5)) * viewport_width +
+                     v * ((y + random_double(rng)) / scene_info.height - Real(0.5)) * viewport_height -
+                     w),
+                 c_EPSILON,
+                 infinity<Real>()};
+        color += trace_ray(scene, scene_info, r, rng);
+    }
+    color /= Real(options.spp);
+
+    int img_pos = (scene_info.height - y - 1) * scene_info.width + x;
+    img[img_pos] = color;
+}
+
+Image3 render(const std::vector<std::string> &params)
+{
     // Homework 4.3: multiple importance sampling
-    if (params.size() < 1) {
+    if (params.size() < 1)
+    {
         return Image3(0, 0);
     }
 
     int max_depth = 50;
     std::string filename;
-    for (int i = 0; i < (int)params.size(); i++) {
-        if (params[i] == "-max_depth") {
+    for (int i = 0; i < (int)params.size(); i++)
+    {
+        if (params[i] == "-max_depth")
+        {
             max_depth = std::stoi(params[++i]);
-        } else if (filename.empty()) {
+        }
+        else if (filename.empty())
+        {
             filename = params[i];
         }
     }
@@ -36,7 +87,7 @@ Image3 render(const std::vector<std::string> &params) {
     Camera &cam = scene.camera;
 
     Real theta = cam.vfov / 180 * c_PI;
-    Real h = tan(theta/2);
+    Real h = tan(theta / 2);
     Real viewport_height = 2.0 * h;
     Real viewport_width = viewport_height / img.height * img.width;
 
@@ -54,34 +105,36 @@ Image3 render(const std::vector<std::string> &params) {
     int num_tiles_x = (img.width + tile_size - 1) / tile_size;
     int num_tiles_y = (img.height + tile_size - 1) / tile_size;
     ProgressReporter reporter(num_tiles_x * num_tiles_y);
-    
+
     std::cout << "Rendering..." << std::endl;
     tick(timer);
-    parallel_for([&](const Vector2i &tile) {
-        std::mt19937 rng{std::random_device{}()};
-        int x0 = tile[0] * tile_size;
-        int x1 = min(x0 + tile_size, img.width);
-        int y0 = tile[1] * tile_size;
-        int y1 = min(y0 + tile_size, img.height);
-        for (int y = y0; y < y1; y++) {
-            for (int x = x0; x < x1; x++) {
-                Vector3 color = {0, 0, 0};
-                for (int i = 0; i < scene.options.spp; i++){
-                    Ray r = {cam.lookfrom,
-                            normalize(
-                            u * ((x + random_double(rng)) / img.width - Real(0.5)) * viewport_width +
-                            v * ((y + random_double(rng)) / img.height - Real(0.5)) * viewport_height -
-                            w),
-                            c_EPSILON,
-                            infinity<Real>()};
-                    color += trace_ray_MIS(scene, r, rng);
-                }
-                img(x, img.height - y - 1) = color / Real(scene.options.spp);
-            }
-        }
-        reporter.update(1);
-    }, Vector2i(num_tiles_x, num_tiles_y));
-    std::cout << std::endl << "Finish building rendering. Took " << tick(timer) << " seconds." << std::endl;
+
+    // Device Memory Init
+    deviceScene device_scene = device_scene_init(scene);
+    Vector3* deviceImg;
+    cudaMalloc((void **)&deviceImg, img.height * img.width * sizeof(Vector3));
+
+    // Kernel Init
+    dim3 DimGrid(ceil(((float)img.width) / TILE_WIDTH), ceil(((float)img.height) / TILE_WIDTH), 1);
+    dim3 DimBlock(TILE_WIDTH, TILE_WIDTH, 1);
+
+    // Run kernel
+    render_kernel<<<DimGrid, DimBlock>>>(scene, sceneInfo, deviceImg);
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) 
+        printf("Error: %s\n", cudaGetErrorString(err));
+    cudaDeviceSynchronize();    
+
+    // Copy the device image back to the host
+    cudaMemcpy(img.data.data(), deviceImg, img.height * img.width * sizeof(Vector3), cudaMemcpyDeviceToHost);
+
+    // Free device memory
+    cudaFree(deviceImg);
+    device_scene_destruct(device_scene);
+
+    std::cout << std::endl
+              << "Finish building rendering. Took " << tick(timer) << " seconds." << std::endl;
 
     return img;
 }

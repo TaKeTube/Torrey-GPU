@@ -57,7 +57,7 @@ __device__ std::optional<SampleRecord> sample_bsdf(
     const Vector3 &dir_in,
     const Intersection &v,
     const TexturePool &pool,
-    std::mt19937 &rng);
+    RNGf &rng);
 
 __device__ Real get_bsdf_pdf(
     const Material &material,
@@ -66,7 +66,7 @@ __device__ Real get_bsdf_pdf(
     const Intersection &v,
     const TexturePool &pool);
 
-__device__ inline Vector3 sample_hemisphere_cos(std::mt19937& rng) {
+__device__ inline Vector3 sample_hemisphere_cos(RNGf& rng) {
     Real u1 = random_double(rng);
     Real u2 = random_double(rng);
     

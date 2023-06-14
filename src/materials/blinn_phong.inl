@@ -2,7 +2,7 @@ __device__ std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &
                                                               const Vector3 &dir_in,
                                                               const Intersection &v,
                                                               const TexturePool &texture_pool,
-                                                              std::mt19937 &rng) {
+                                                              RNGf &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }

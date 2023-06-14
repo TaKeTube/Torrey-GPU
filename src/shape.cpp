@@ -1,4 +1,5 @@
 #include "shape.h"
+#include "scene.h"
 
 __device__ Vector2 get_sphere_uv(const Vector3& p) {
     // p: a given point on the sphere of radius one, centered at the origin.
@@ -41,13 +42,13 @@ __device__ std::optional<Intersection> intersect_sphere(const Sphere& s, const R
     return v;
 }
 
-__device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r) {
-    const TriangleMesh &mesh = *tri.mesh;
-    const Vector3 &indices = mesh.indices.at(tri.face_index);
+__device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r, const deviceScene& scene) {
+    const DeviceTriangleMesh &mesh = scene.meshes[tri.mesh_id];
+    const Vector3i &indices = mesh.indices[tri.face_index];
 
-    Vector3 v0 = mesh.positions.at(indices.x);
-    Vector3 v1 = mesh.positions.at(indices.y);
-    Vector3 v2 = mesh.positions.at(indices.z);
+    Vector3 v0 = mesh.positions[indices.x];
+    Vector3 v1 = mesh.positions[indices.y];
+    Vector3 v2 = mesh.positions[indices.z];
     Vector3 e1, e2, h, s, q;
     Real a, f, u, v;
     e1 = v1 - v0;
@@ -85,24 +86,24 @@ __device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, c
         inter.material_id = mesh.material_id;
         inter.area_light_id = tri.area_light_id;
         // Compute uv
-        if (mesh.uvs.empty()) {
+        if (nullptr == mesh.uvs) {
             inter.uv = Vector2(u, v);
         } else {
-            Vector2 uv0 = mesh.uvs.at(indices.x);
-            Vector2 uv1 = mesh.uvs.at(indices.y);
-            Vector2 uv2 = mesh.uvs.at(indices.z);
+            Vector2 uv0 = mesh.uvs[indices.x];
+            Vector2 uv1 = mesh.uvs[indices.y];
+            Vector2 uv2 = mesh.uvs[indices.z];
             inter.uv = (1 - u - v) * uv0 + u * uv1 + v * uv2;
             // if(inter.uv.y == 1 || inter.uv.y == 0){
             //     std::cout << uv0 << uv1 << uv2 << std::endl;
             // }
         }
         // Compute shading normal
-        if (mesh.normals.empty()) {
+        if (nullptr == mesh.normals) {
             inter.shading_normal = inter.geo_normal;
         } else {
-            Vector3 n0 = mesh.normals.at(indices.x);
-            Vector3 n1 = mesh.normals.at(indices.y);
-            Vector3 n2 = mesh.normals.at(indices.z);
+            Vector3 n0 = mesh.normals[indices.x];
+            Vector3 n1 = mesh.normals[indices.y];
+            Vector3 n2 = mesh.normals[indices.z];
             inter.shading_normal = normalize((1 - u - v) * n0 + u * n1 + v * n2);
         }
         return inter;
@@ -122,7 +123,7 @@ __device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, c
 //     return {point, normal};
 // }
 
-__device__ PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 &ref_pos, std::mt19937& rng) {
+__device__ PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 &ref_pos, RNGf& rng) {
     Real u1 = random_double(rng);
     Real u2 = random_double(rng);
 
@@ -143,13 +144,13 @@ __device__ PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 
     return {point, normal};
 }
 
-__device__ PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, std::mt19937& rng) {
-    const TriangleMesh &mesh = *t.mesh;
-    const Vector3 &indices = mesh.indices.at(t.face_index);
+__device__ PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, RNGf& rng, const deviceScene& scene) {
+    const DeviceTriangleMesh &mesh = scene.meshes[t.mesh_id];
+    const Vector3i &indices = mesh.indices[t.face_index];
 
-    Vector3 v0 = mesh.positions.at(indices.x);
-    Vector3 v1 = mesh.positions.at(indices.y);
-    Vector3 v2 = mesh.positions.at(indices.z);
+    Vector3 v0 = mesh.positions[indices.x];
+    Vector3 v1 = mesh.positions[indices.y];
+    Vector3 v2 = mesh.positions[indices.z];
 
     Real u1 = random_double(rng);
     Real u2 = random_double(rng);
@@ -160,10 +161,15 @@ __device__ PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vect
     Vector3 point = (1 - b1 - b2) * v0 + b1 * v1 + b2 * v2;
     Vector3 normal = normalize(cross(v1 - v0, v2 - v0));
 
-    Vector3 n0 = mesh.normals.at(indices.x);
-    Vector3 n1 = mesh.normals.at(indices.y);
-    Vector3 n2 = mesh.normals.at(indices.z);
-    Vector3 shading_normal = (1 - b1 - b2) * n0 + b1 * n1 + b2 * n2;
+    Vector3 shading_normal;
+    if (nullptr == mesh.normals) {
+        shading_normal = normal;
+    } else {
+        Vector3 n0 = mesh.normals[indices.x];
+        Vector3 n1 = mesh.normals[indices.y];
+        Vector3 n2 = mesh.normals[indices.z];
+        shading_normal = (1 - b1 - b2) * n0 + b1 * n1 + b2 * n2;
+    }
 
     return {point, dot(shading_normal, normal) > 0 ? normal : -normal};
 }
@@ -172,13 +178,13 @@ __device__ Real get_area_sphere(const Sphere &s) {
     return 4*c_PI*s.radius*s.radius;
 }
 
-__device__ Real get_area_triangle(const Triangle &t) {
-    const TriangleMesh &mesh = *t.mesh;
-    const Vector3 &indices = mesh.indices.at(t.face_index);
+__device__ Real get_area_triangle(const Triangle &t, const deviceScene& scene) {
+    const DeviceTriangleMesh &mesh = scene.meshes[t.mesh_id];
+    const Vector3i &indices = mesh.indices[t.face_index];
 
-    Vector3 v0 = mesh.positions.at(indices.x);
-    Vector3 v1 = mesh.positions.at(indices.y);
-    Vector3 v2 = mesh.positions.at(indices.z);
+    Vector3 v0 = mesh.positions[indices.x];
+    Vector3 v1 = mesh.positions[indices.y];
+    Vector3 v2 = mesh.positions[indices.z];
 
     return length(cross(v1 - v0, v2 - v0)) / 2;
 }
