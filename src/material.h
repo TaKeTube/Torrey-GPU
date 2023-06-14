@@ -45,28 +45,28 @@ struct SampleRecord {
     Real pdf;
 };
 
-Vector3 eval(
+__device__ Vector3 eval(
     const Material &material,
     const Vector3 &dir_in,
     const SampleRecord &record,
     const Intersection &v,
     const TexturePool &pool);
 
-std::optional<SampleRecord> sample_bsdf(
+__device__ std::optional<SampleRecord> sample_bsdf(
     const Material &material,
     const Vector3 &dir_in,
     const Intersection &v,
     const TexturePool &pool,
     std::mt19937 &rng);
 
-Real get_bsdf_pdf(
+__device__ Real get_bsdf_pdf(
     const Material &material,
     const Vector3 &dir_in,
     const Vector3 &dir_out,
     const Intersection &v,
     const TexturePool &pool);
 
-inline Vector3 sample_hemisphere_cos(std::mt19937& rng) {
+__device__ inline Vector3 sample_hemisphere_cos(std::mt19937& rng) {
     Real u1 = random_double(rng);
     Real u2 = random_double(rng);
     
@@ -79,7 +79,7 @@ inline Vector3 sample_hemisphere_cos(std::mt19937& rng) {
     };
 }
 
-inline Real compute_blinn_phong_G_hat(Vector3 omega, Vector3 n, Real alpha) {
+__device__ inline Real compute_blinn_phong_G_hat(Vector3 omega, Vector3 n, Real alpha) {
     Real odn = dot(omega, n);
     Real a = sqrt(0.5 * alpha + 1)/sqrt(1/(odn * odn) - 1);
     Real a2 = a*a;

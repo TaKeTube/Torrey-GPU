@@ -1,4 +1,8 @@
-std::optional<SampleRecord> sample_bsdf_op::operator()(const Plastic &m) const {
+__device__ std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m,
+                                                           const Vector3 &dir_in,
+                                                           const Intersection &v,
+                                                           const TexturePool &texture_pool,
+                                                           std::mt19937 &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
@@ -24,7 +28,11 @@ std::optional<SampleRecord> sample_bsdf_op::operator()(const Plastic &m) const {
     return record;
 }
 
-Real sample_bsdf_pdf_op::operator()(const Plastic &m) const {
+__device__ Real sample_bsdf_pdf_Plastic(const Plastic &m,
+                                        const Vector3 &dir_in,
+                                        const Vector3 &dir_out,
+                                        const Intersection &v,
+                                        const TexturePool &texture_pool) {
     if (dot(v.geo_normal, dir_out) < 0) 
         return Real(0);
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
@@ -35,7 +43,11 @@ Real sample_bsdf_pdf_op::operator()(const Plastic &m) const {
     return length(normalize(dir_in + dir_out) - n) < c_EPSILON ? Real(F) : (1 - F) * fmax(dot(n, dir_out), Real(0)) / c_PI;
 }
 
-Vector3 eval_material_op::operator()(const Plastic &m) const {
+__device__ Vector3 eval_material_Plastic(const Plastic &m,
+                                         const Vector3 &dir_in,
+                                         const SampleRecord &record,
+                                         const Intersection &v,
+                                         const TexturePool &texture_pool) {
     if (dot(v.geo_normal, dir_in) < 0 || dot(v.geo_normal, record.dir_out) < 0)
         return {Real(0), Real(0), Real(0)};
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;

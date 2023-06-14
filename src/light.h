@@ -18,23 +18,22 @@ struct DiffuseAreaLight {
 
 using Light = std::variant<PointLight, DiffuseAreaLight>;
 
-struct sample_on_light_op {
-    PointAndNormal operator()(const PointLight &l) const;
-    PointAndNormal operator()(const DiffuseAreaLight &l) const;
-
-    const Scene &scene;
-    const Vector3 &ref_pos;
-    std::mt19937& rng;
-};
-
-int sample_light(const Scene &scene, std::mt19937& rng);
-int sample_light_power(const Scene &scene, std::mt19937& rng);
-Real get_light_pmf(const Scene &scene, int id);
-Real get_light_pdf(const Scene &scene, int light_id,
+__device__ int sample_light(const Scene &scene, std::mt19937& rng);
+__device__ int sample_light_power(const Scene &scene, std::mt19937& rng);
+__device__ Real get_light_pmf(const Scene &scene, int id);
+__device__ Real get_light_pdf(const Scene &scene, int light_id,
                    const PointAndNormal &light_point,
                    const Vector3 &ref_pos
 );
 
-inline PointAndNormal sample_on_light(const Scene &scene, const Light& l, const Vector3 &ref_pos, std::mt19937& rng) {
-    return std::visit(sample_on_light_op{scene, ref_pos, rng}, l);
+__device__ PointAndNormal sample_on_light_Point(const PointLight &l);
+__device__ PointAndNormal sample_on_light_DiffuseArea(const DiffuseAreaLight &l, const Scene& scene, const Vector3 &ref_pos, std::mt19937& rng);
+
+__device__ inline PointAndNormal sample_on_light(const Scene &scene, const Light& l, const Vector3 &ref_pos, std::mt19937& rng) {
+    if(auto *s = std::get_if<PointLight>(&l))
+        return sample_on_light_Point(*s);
+    else if(auto *s = std::get_if<DiffuseAreaLight>(&l))
+        return sample_on_light_DiffuseArea(*s, scene, ref_pos, rng);
 }
+
+

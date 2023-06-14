@@ -1,8 +1,8 @@
 #pragma once
 
-#include "torrey.cuh"
+#include "torrey.h"
 #include "matrix.h"
-#include "vector.cuh"
+#include "vector.h"
 
 /// A collection of 3D transformations.
 Matrix4x4 translate(const Vector3 &delta);

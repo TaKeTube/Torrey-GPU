@@ -2,11 +2,11 @@
 #include "scene.h"
 #include <algorithm>
 
-int sample_light(const Scene &scene, std::mt19937& rng) {
+__device__ int sample_light(const Scene &scene, std::mt19937& rng) {
     return floor(random_double(rng) * scene.lights.size());
 }
 
-int sample_light_power(const Scene &scene, std::mt19937& rng) {
+__device__ int sample_light_power(const Scene &scene, std::mt19937& rng) {
     const std::vector<Real> &power_cdf = scene.lights_power_cdf;
     Real u = random_double(rng);
     int size = power_cdf.size() - 1;
@@ -16,20 +16,20 @@ int sample_light_power(const Scene &scene, std::mt19937& rng) {
     return offset;
 }
 
-Real get_light_pmf(const Scene &scene, int id) {
+__device__ Real get_light_pmf(const Scene &scene, int id) {
     const std::vector<Real> &pmf = scene.lights_power_pmf;
     assert(id >= 0 && id < (int)pmf.size());
     return pmf[id];
 }
 
-Real light_power(const Scene &scene, const Light &light) {
+__device__ Real light_power(const Scene &scene, const Light &light) {
     if(auto* l = std::get_if<DiffuseAreaLight>(&light)){
         return luminance(l->intensity) * get_area(scene.shapes[l->shape_id]) * c_PI;
     }
     return 0;
 }
 
-Real get_light_pdf(const Scene &scene, int light_id,
+__device__ Real get_light_pdf(const Scene &scene, int light_id,
                    const PointAndNormal &light_point,
                    const Vector3 &ref_pos) {
     if(auto* l = std::get_if<DiffuseAreaLight>(&scene.lights[light_id])){
@@ -47,10 +47,12 @@ Real get_light_pdf(const Scene &scene, int light_id,
     return 0;
 }
 
-PointAndNormal sample_on_light_op::operator()(const PointLight &l) const {
+__device__ PointAndNormal sample_on_light_Point(const PointLight &l) {
     return {l.position, Vector3{0, 0, 0}};
 }
 
-PointAndNormal sample_on_light_op::operator()(const DiffuseAreaLight &l) const {
-    return std::visit(sample_on_shape_op{ref_pos, rng}, scene.shapes.at(l.shape_id));
+__device__ PointAndNormal sample_on_light_DiffuseArea(const DiffuseAreaLight &l, const Scene& scene, const Vector3 &ref_pos, std::mt19937& rng)
+{
+    Shape s = scene.shapes.at(l.shape_id);
+    return sample_on_shape(s, ref_pos, rng);
 }

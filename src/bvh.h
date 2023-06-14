@@ -8,5 +8,5 @@ struct BVHNode {
     int primitive_id;
 };
 
-int construct_bvh(const std::vector<BBoxWithID>& boxes,
-    std::vector<BVHNode>& node_pool);
+int construct_bvh(const std::vector<BBoxWithID> &boxes,
+                  std::vector<BVHNode> &node_pool);

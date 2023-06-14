@@ -1,4 +1,8 @@
-std::optional<SampleRecord> sample_bsdf_op::operator()(const Diffuse &m) const {
+__device__ std::optional<SampleRecord> sample_bsdf_Diffuse(const Diffuse &m, 
+                                                           const Vector3 &dir_in,
+                                                           const Intersection &v,
+                                                           const TexturePool &texture_pool,
+                                                           std::mt19937 &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
@@ -12,14 +16,22 @@ std::optional<SampleRecord> sample_bsdf_op::operator()(const Diffuse &m) const {
     return record;
 }
 
-Real sample_bsdf_pdf_op::operator()(const Diffuse &m) const {
+__device__ Real sample_bsdf_pdf_Diffuse(const Diffuse &m, 
+                                        const Vector3 &dir_in,
+                                        const Vector3 &dir_out,
+                                        const Intersection &v,
+                                        const TexturePool &texture_pool) {
     if (dot(v.geo_normal, dir_out) < 0) 
         return Real(0);
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
     return fmax(dot(n, dir_out), Real(0)) / c_PI;
 }
 
-Vector3 eval_material_op::operator()(const Diffuse &m) const {
+__device__ Vector3 eval_material_Diffuse(const Diffuse &m,
+                                         const Vector3 &dir_in,
+                                         const SampleRecord &record,
+                                         const Intersection &v,
+                                         const TexturePool &texture_pool) {
     if (dot(v.geo_normal, dir_in) < 0 || dot(v.geo_normal, record.dir_out) < 0)
         return {Real(0), Real(0), Real(0)};
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;

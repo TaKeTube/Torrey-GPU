@@ -1,7 +1,7 @@
 #pragma once
 
-#include "torrey.cuh"
-#include "vector.cuh"
+#include "torrey.h"
+#include "vector.h"
 
 #include <filesystem>
 #include <variant>

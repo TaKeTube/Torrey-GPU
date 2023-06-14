@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vector.cuh"
+#include "vector.h"
 
 #include <string>
 #include <cstring>

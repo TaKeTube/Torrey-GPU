@@ -26,14 +26,12 @@ struct ConstTexture
 
 using Texture = std::variant<ConstTexture, ImageTexture>;
 
-struct eval_texture_op {
-    Vector3 operator()(const ConstTexture &t) const;
-    Vector3 operator()(const ImageTexture &t) const;
+__device__ Vector3 eval_texture_Constant(const ConstTexture &t);
+__device__ Vector3 eval_texture_Image(const ImageTexture &t, const Vector2 &uv, const TexturePool &pool);
 
-    const Vector2 &uv;
-    const TexturePool &pool;
-};
-
-inline Vector3 eval(const Texture &texture, const Vector2 &uv, const TexturePool &pool) {
-    return std::visit(eval_texture_op{uv, pool}, texture);
+__device__ inline Vector3 eval(const Texture &texture, const Vector2 &uv, const TexturePool &pool) {
+    if(auto* t = std::get_if<ConstTexture>(&texture))
+        return eval_texture_Constant(*t);
+    else if(auto *t = std::get_if<ImageTexture>(&texture))
+        return eval_texture_Image(*t, uv, pool);
 }

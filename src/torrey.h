@@ -12,9 +12,23 @@
 #include <limits>
 #include <algorithm>
 #include <random>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 // for suppressing unused warnings
 #define UNUSED(x) (void)(x)
+
+#define c_EPSILON 1e-7
+
+// Lots of PIs!
+#define c_PI 3.14159265358979323846
+#define c_INVPI (1.0 / c_PI)
+#define c_TWOPI (2.0 * c_PI)
+#define c_INVTWOPI (1.0 / c_TWOPI)
+#define c_FOURPI (4.0 * c_PI)
+#define c_INVFOURPI (1.0 / c_FOURPI)
+#define c_PIOVERTWO (0.5 * c_PI)
+#define c_PIOVERFOUR (0.25 * c_PI)
 
 // We use double for most of our computation.
 // Rendering is usually done in single precision Reals.
@@ -26,17 +40,17 @@
 // just set Real = float.
 using Real = double;
 
-const Real c_EPSILON = 1e-7;
+// const Real c_EPSILON = 1e-7;
 
-// Lots of PIs!
-const Real c_PI = Real(3.14159265358979323846);
-const Real c_INVPI = Real(1.0) / c_PI;
-const Real c_TWOPI = Real(2.0) * c_PI;
-const Real c_INVTWOPI = Real(1.0) / c_TWOPI;
-const Real c_FOURPI = Real(4.0) * c_PI;
-const Real c_INVFOURPI = Real(1.0) / c_FOURPI;
-const Real c_PIOVERTWO = Real(0.5) * c_PI;
-const Real c_PIOVERFOUR = Real(0.25) * c_PI;
+// // Lots of PIs!
+// const Real c_PI = Real(3.14159265358979323846);
+// const Real c_INVPI = Real(1.0) / c_PI;
+// const Real c_TWOPI = Real(2.0) * c_PI;
+// const Real c_INVTWOPI = Real(1.0) / c_TWOPI;
+// const Real c_FOURPI = Real(4.0) * c_PI;
+// const Real c_INVFOURPI = Real(1.0) / c_FOURPI;
+// const Real c_PIOVERTWO = Real(0.5) * c_PI;
+// const Real c_PIOVERFOUR = Real(0.25) * c_PI;
 
 template <typename T>
 inline T infinity() {
@@ -51,43 +65,43 @@ inline std::string to_lowercase(const std::string &s) {
     return out;
 }
 
-inline int modulo(int a, int b) {
+__host__ __device__ inline int modulo(int a, int b) {
     auto r = a % b;
     return (r < 0) ? r+b : r;
 }
 
-inline float modulo(float a, float b) {
+__host__ __device__ inline float modulo(float a, float b) {
     float r = ::fmodf(a, b);
     return (r < 0.0f) ? r+b : r;
 }
 
-inline double modulo(double a, double b) {
+__host__ __device__ inline double modulo(double a, double b) {
     double r = ::fmod(a, b);
     return (r < 0.0) ? r+b : r;
 }
 
 template <typename T>
-inline T max(const T &a, const T &b) {
+__host__ __device__ inline T max(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
 template <typename T>
-inline T min(const T &a, const T &b) {
+__host__ __device__ inline T min(const T &a, const T &b) {
     return a < b ? a : b;
 }
 
-inline Real radians(const Real deg) {
+__host__ __device__ inline Real radians(const Real deg) {
     return (c_PI / Real(180)) * deg;
 }
 
-inline Real degrees(const Real rad) {
+__host__ __device__ inline Real degrees(const Real rad) {
     return (Real(180) / c_PI) * rad;
 }
 
-inline double random_double(std::mt19937 &rng) {
+__host__ __device__ inline double random_double(std::mt19937 &rng) {
     return std::uniform_real_distribution<double>{0.0, 1.0}(rng);
 }
 
-inline int random_int(int min, int max, std::mt19937 &rng) {
+__host__ __device__ inline int random_int(int min, int max, std::mt19937 &rng) {
     return static_cast<int>(min + (max - min) * random_double(rng));
 }

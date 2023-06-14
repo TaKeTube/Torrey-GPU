@@ -1,6 +1,6 @@
 #include "shape.h"
 
-Vector2 get_sphere_uv(const Vector3& p) {
+__device__ Vector2 get_sphere_uv(const Vector3& p) {
     // p: a given point on the sphere of radius one, centered at the origin.
     Real theta = acos(-p.y);
     Real phi = atan2(-p.z, p.x) + c_PI;
@@ -10,7 +10,7 @@ Vector2 get_sphere_uv(const Vector3& p) {
     return {u, v};
 }
 
-std::optional<Intersection> intersect_op::operator()(const Sphere& s) const {
+__device__ std::optional<Intersection> intersect_sphere(const Sphere& s, const Ray& r) {
     Vector3 oc = r.origin - s.center;
     Real a = dot(r.dir, r.dir);
     Real half_b = dot(oc, r.dir);
@@ -41,7 +41,7 @@ std::optional<Intersection> intersect_op::operator()(const Sphere& s) const {
     return v;
 }
 
-std::optional<Intersection> intersect_op::operator()(const Triangle& tri) const {
+__device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r) {
     const TriangleMesh &mesh = *tri.mesh;
     const Vector3 &indices = mesh.indices.at(tri.face_index);
 
@@ -122,7 +122,7 @@ std::optional<Intersection> intersect_op::operator()(const Triangle& tri) const 
 //     return {point, normal};
 // }
 
-PointAndNormal sample_on_shape_op::operator()(const Sphere &s) const {
+__device__ PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 &ref_pos, std::mt19937& rng) {
     Real u1 = random_double(rng);
     Real u2 = random_double(rng);
 
@@ -143,7 +143,7 @@ PointAndNormal sample_on_shape_op::operator()(const Sphere &s) const {
     return {point, normal};
 }
 
-PointAndNormal sample_on_shape_op::operator()(const Triangle &t) const {
+__device__ PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, std::mt19937& rng) {
     const TriangleMesh &mesh = *t.mesh;
     const Vector3 &indices = mesh.indices.at(t.face_index);
 
@@ -168,11 +168,11 @@ PointAndNormal sample_on_shape_op::operator()(const Triangle &t) const {
     return {point, dot(shading_normal, normal) > 0 ? normal : -normal};
 }
 
-Real get_area_op::operator()(const Sphere &s) const {
+__device__ Real get_area_sphere(const Sphere &s) {
     return 4*c_PI*s.radius*s.radius;
 }
 
-Real get_area_op::operator()(const Triangle &t) const {
+__device__ Real get_area_triangle(const Triangle &t) {
     const TriangleMesh &mesh = *t.mesh;
     const Vector3 &indices = mesh.indices.at(t.face_index);
 

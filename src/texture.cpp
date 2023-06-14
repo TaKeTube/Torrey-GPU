@@ -1,10 +1,10 @@
 #include "texture.h"
 
-Vector3 eval_texture_op::operator()(const ConstTexture &t) const {
+__device__ Vector3 eval_texture_Constant(const ConstTexture &t){
     return t.value;
 }
 
-Vector3 eval_texture_op::operator()(const ImageTexture &t) const {
+__device__ Vector3 eval_texture_Image(const ImageTexture &t, const Vector2 &uv, const TexturePool &pool){
     const Image3& img = pool.image3s.at(t.texture_id);
     Real x = img.width * modulo(t.uscale * uv.x + t.uoffset, Real(1));
     Real y = img.height * modulo(t.vscale * uv.y + t.voffset, Real(1));
