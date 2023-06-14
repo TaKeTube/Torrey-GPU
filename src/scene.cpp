@@ -275,6 +275,29 @@ __device__ std::optional<Intersection> bvh_intersect(const deviceScene& scene, c
         }
     }
     return isect_left;
+
+    // TODO modify to for loop
+    //
+    // unsigned int stack[STACK_SIZE];
+    // int stack_ptr = -1;
+    //
+    // int primitive_id;
+    // const BVHNode &curr_node = node;
+    // while(1)
+    // {
+    //     if(node.primitive_id != -1)
+    //     {
+    //         primitive_id = node.primitive_id;
+    //         break;
+    //     }
+            
+    //     const BVHNode &left = scene.bvh_nodes[node.left_node_id];
+    //     const BVHNode &right = scene.bvh_nodes[node.right_node_id];
+
+
+    // }
+    
+    // return intersect_shape(scene.shapes[node.primitive_id], ray);
 }
 
 __device__ std::optional<Intersection> scene_intersect(const deviceScene& scene, const Ray& r){

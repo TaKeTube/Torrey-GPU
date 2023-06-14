@@ -2,7 +2,6 @@
 #include "parse_scene.h"
 #include "scene.h"
 #include "timer.h"
-#include "parallel.h"
 #include "progressreporter.h"
 
 __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *img)
