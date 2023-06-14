@@ -289,8 +289,6 @@ __device__ bool scene_occluded(const deviceScene& scene, const Ray& r){
     if(nullptr != scene.bvh_nodes){
         std::optional<Intersection> v_ = bvh_intersect(scene, scene.bvh_nodes[scene.bvh_root_id], r);
         return v_ ? true : false;
-        // Intersection v;
-        // return scene.bvh->intersect(r, v);
     }else{
         return false;
     }

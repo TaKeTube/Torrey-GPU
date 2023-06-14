@@ -32,6 +32,7 @@ __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *
     Vector3 u = normalize(cross(cam.up, w));
     Vector3 v = cross(w, u);
 
+    // Trace ray
     Vector3 color = {0, 0, 0};
     for (int i = 0; i < options.spp; i++)
     {
@@ -46,13 +47,13 @@ __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *
     }
     color /= Real(options.spp);
 
+    // Set output pixel
     int img_pos = (scene_info.height - y - 1) * scene_info.width + x;
     img[img_pos] = color;
 }
 
 Image3 render(const std::vector<std::string> &params)
 {
-    // Homework 4.3: multiple importance sampling
     if (params.size() < 1)
     {
         return Image3(0, 0);

@@ -51,7 +51,6 @@ set(SRC
     src/render.cpp
     src/image.h
     src/matrix.h
-    src/parallel.h
     src/parse_obj.h
     src/parse_ply.h
     src/parse_scene.h
@@ -63,7 +62,6 @@ set(SRC
     src/compute_normals.cpp
     src/image.cpp
     src/main.cpp
-    src/parallel.cpp
     src/parse_obj.cpp
     src/parse_ply.cpp
     src/parse_scene.cpp
