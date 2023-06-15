@@ -52,9 +52,9 @@ struct sceneInfo {
 };
 
 struct freeInfo {
-    int num_meshes;
-    int num_img1;
-    int num_img3;
+    std::vector<DeviceTriangleMesh> device_meshes;
+    std::vector<DeviceImage1> device_img1s;
+    std::vector<DeviceImage3> device_img3s;
 };
 
 __device__ std::optional<Intersection> bvh_intersect(const deviceScene &scene, const BVHNode &node, Ray ray);
@@ -107,13 +107,13 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
     DeviceTexturePool& device_pool = dscene.textures;
     std::vector<DeviceImage1> device_img1s;
     std::vector<DeviceImage3> device_img3s;
-    for(auto img1 : scene.textures.image1s) {
+    for(auto &img1 : scene.textures.image1s) {
         Real* deviceTexture1;
         cudaMalloc((void **)&deviceTexture1, img1.width * img1.height * sizeof(Real));
         cudaMemcpy(deviceTexture1, img1.data.data(), img1.width * img1.height * sizeof(Real), cudaMemcpyHostToDevice);
         device_img1s.emplace_back(img1.width, img1.height, deviceTexture1);
     }
-    for(auto img3 : scene.textures.image3s) {
+    for(auto &img3 : scene.textures.image3s) {
         Vector3* deviceTexture3;
         cudaMalloc((void **)&deviceTexture3, img3.width * img3.height * sizeof(Vector3));
         cudaMemcpy(deviceTexture3, img3.data.data(), img3.width * img3.height * sizeof(Vector3), cudaMemcpyHostToDevice);
@@ -129,10 +129,9 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
     }
 
     freeInfo free_info;
-    free_info.num_meshes = scene.meshes.size();
-    free_info.num_img1 = device_img1s.size();
-    free_info.num_img3 = device_img3s.size();
-
+    free_info.device_meshes = std::move(device_meshes);
+    free_info.device_img1s = std::move(device_img1s);
+    free_info.device_img3s = std::move(device_img3s);
     return {dscene, free_info};
 }
 
@@ -141,14 +140,17 @@ inline deviceScene device_scene_destruct(deviceScene& scene, freeInfo& free_info
     cudaFree(scene.lights);
     cudaFree(scene.materials);
     cudaFree(scene.bvh_nodes);
-    for(int i = 0; i < free_info.num_meshes; ++i)
-        device_mesh_destruct(scene.meshes[i]);
-    for(int i = 0; i < free_info.num_img1; ++i){
-        cudaFree(scene.textures.image1s[i].data);
+
+    for(auto &m : free_info.device_meshes)
+        device_mesh_destruct(m);
+
+    for(auto &img1 : free_info.device_img1s){
+        cudaFree(img1.data);
     }
     cudaFree(scene.textures.image1s);
-    for(int i = 0; i < free_info.num_img3; ++i){
-        cudaFree(scene.textures.image3s[i].data);
+
+    for(auto &img3 : free_info.device_img3s){
+        cudaFree(img3.data);
     }
     cudaFree(scene.textures.image3s);
 }
