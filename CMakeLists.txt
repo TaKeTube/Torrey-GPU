@@ -26,7 +26,7 @@ endif()
 find_package(CUDA 10 REQUIRED)
 include(${CMAKE_MODULE_PATH}/CUDAComputesList.cmake)
 
-list(APPEND CUDA_NVCC_FLAGS ${CUDA_GENERATE_CODE} "--std=c++17" "--expt-relaxed-constexpr")
+list(APPEND CUDA_NVCC_FLAGS ${CUDA_GENERATE_CODE} "--std=c++17" "--expt-relaxed-constexpr" "-dc")
 list(APPEND CUDA_NVCC_FLAGS_DEBUG "-g -G")
 set(CUDA_VERBOSE_BUILD ON)
 
@@ -48,7 +48,7 @@ set(SRC
     src/compute_normals.h
     src/flexception.h
     src/render.h
-    src/render.cpp
+    src/render.cu
     src/image.h
     src/matrix.h
     src/parse_obj.h

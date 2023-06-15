@@ -23,10 +23,10 @@ struct RNG
 using RNGf = RNG<float>;
 using RNGi = RNG<int>;
 
-__host__ __device__ inline double random_double(RNGf &rng) {
+__device__ inline double random_double(RNGf &rng) {
     return rng();
 }
 
-__host__ __device__ inline int random_int(int min, int max, RNGf &rng) {
+__device__ inline int random_int(int min, int max, RNGf &rng) {
     return static_cast<int>(min + (max - min) * random_double(rng));
 }

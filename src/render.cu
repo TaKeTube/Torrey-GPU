@@ -106,6 +106,12 @@ Image3 render(const std::vector<std::string> &params)
 
     // Device Memory Init
     auto [device_scene, free_info] = device_scene_init(scene);
+    sceneInfo scene_info;
+    scene_info.background_color = scene.background_color;
+    scene_info.camera = scene.camera;
+    scene_info.height = scene.height;
+    scene_info.width = scene.width;
+    scene_info.options = scene.options;
     Vector3* deviceImg;
     cudaMalloc((void **)&deviceImg, img.height * img.width * sizeof(Vector3));
 
@@ -114,7 +120,7 @@ Image3 render(const std::vector<std::string> &params)
     dim3 DimBlock(TILE_WIDTH, TILE_WIDTH, 1);
 
     // Run kernel
-    render_kernel<<<DimGrid, DimBlock>>>(scene, sceneInfo, deviceImg);
+    render_kernel<<<DimGrid, DimBlock>>>(device_scene, scene_info, deviceImg);
 
     // Checking Errors
     cudaError_t err = cudaGetLastError();

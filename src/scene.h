@@ -111,13 +111,13 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
         Real* deviceTexture1;
         cudaMalloc((void **)&deviceTexture1, img1.width * img1.height * sizeof(Real));
         cudaMemcpy(deviceTexture1, img1.data.data(), img1.width * img1.height * sizeof(Real), cudaMemcpyHostToDevice);
-        device_img1s.emplace_back(img1.width, img1.height, deviceTexture1);
+        device_img1s.push_back(DeviceImage1{img1.width, img1.height, deviceTexture1});
     }
     for(auto &img3 : scene.textures.image3s) {
         Vector3* deviceTexture3;
         cudaMalloc((void **)&deviceTexture3, img3.width * img3.height * sizeof(Vector3));
         cudaMemcpy(deviceTexture3, img3.data.data(), img3.width * img3.height * sizeof(Vector3), cudaMemcpyHostToDevice);
-        device_img1s.emplace_back(img3.width, img3.height, deviceTexture3);
+        device_img3s.push_back(DeviceImage3{img3.width, img3.height, deviceTexture3});
     }
     if(!scene.textures.image1s.empty()){
         cudaMalloc((void **)&device_pool.image1s, device_img1s.size() * sizeof(DeviceImage1));
@@ -135,7 +135,7 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
     return {dscene, free_info};
 }
 
-inline deviceScene device_scene_destruct(deviceScene& scene, freeInfo& free_info) {
+inline void device_scene_destruct(deviceScene& scene, freeInfo& free_info) {
     cudaFree(scene.shapes);
     cudaFree(scene.lights);
     cudaFree(scene.materials);

@@ -56,17 +56,17 @@ constexpr Real c_INVFOURPI = Real(1.0) / c_FOURPI;
 constexpr Real c_PIOVERTWO = Real(0.5) * c_PI;
 constexpr Real c_PIOVERFOUR = Real(0.25) * c_PI;
 
-template <typename T>
-inline T infinity() {
-    return std::numeric_limits<T>::infinity();
-}
-
 namespace fs = std::filesystem;
 
 inline std::string to_lowercase(const std::string &s) {
     std::string out = s;
     std::transform(s.begin(), s.end(), out.begin(), ::tolower);
     return out;
+}
+
+template <typename T>
+__host__ __device__ inline T infinity() {
+    return std::numeric_limits<T>::infinity();
 }
 
 __host__ __device__ inline int modulo(int a, int b) {

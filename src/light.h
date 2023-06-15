@@ -28,10 +28,12 @@ __device__ PointAndNormal sample_on_light_Point(const PointLight &l);
 __device__ PointAndNormal sample_on_light_DiffuseArea(const DiffuseAreaLight &l, const deviceScene& scene, const Vector3 &ref_pos, RNGf& rng);
 
 __device__ inline PointAndNormal sample_on_light(const deviceScene &scene, const Light& l, const Vector3 &ref_pos, RNGf& rng) {
-    if(auto *s = std::get_if<PointLight>(&l))
+    if (auto* s = std::get_if<PointLight>(&l))
         return sample_on_light_Point(*s);
-    else if(auto *s = std::get_if<DiffuseAreaLight>(&l))
+    else if (auto* s = std::get_if<DiffuseAreaLight>(&l))
         return sample_on_light_DiffuseArea(*s, scene, ref_pos, rng);
+    else
+        return PointAndNormal{ Vector3{0.0, 0.0, 0.0}, Vector3{0.0, 0.0, 0.0} };
 }
 
 

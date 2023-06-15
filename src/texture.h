@@ -51,4 +51,6 @@ __device__ inline Vector3 eval(const Texture &texture, const Vector2 &uv, const 
         return eval_texture_Constant(*t);
     else if(auto *t = std::get_if<ImageTexture>(&texture))
         return eval_texture_Image(*t, uv, pool);
+    else
+        return Vector3{0.0, 0.0, 0.0};
 }
