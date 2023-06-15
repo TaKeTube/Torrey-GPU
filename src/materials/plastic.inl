@@ -1,4 +1,4 @@
-__device__ std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m,
+__device__ inline std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m,
                                                            const Vector3 &dir_in,
                                                            const Intersection &v,
                                                            const DeviceTexturePool &texture_pool,
@@ -28,7 +28,7 @@ __device__ std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic &m,
     return record;
 }
 
-__device__ Real sample_bsdf_pdf_Plastic(const Plastic &m,
+__device__ inline Real sample_bsdf_pdf_Plastic(const Plastic &m,
                                         const Vector3 &dir_in,
                                         const Vector3 &dir_out,
                                         const Intersection &v,
@@ -43,7 +43,7 @@ __device__ Real sample_bsdf_pdf_Plastic(const Plastic &m,
     return length(normalize(dir_in + dir_out) - n) < c_EPSILON ? Real(F) : (1 - F) * fmax(dot(n, dir_out), Real(0)) / c_PI;
 }
 
-__device__ Vector3 eval_material_Plastic(const Plastic &m,
+__device__ inline Vector3 eval_material_Plastic(const Plastic &m,
                                          const Vector3 &dir_in,
                                          const SampleRecord &record,
                                          const Intersection &v,

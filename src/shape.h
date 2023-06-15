@@ -5,8 +5,6 @@
 #include "intersection.h"
 #include "ray.h"
 
-struct deviceScene;
-
 struct ShapeBase {
     int material_id = -1;
     int area_light_id = -1;
@@ -38,6 +36,8 @@ struct Triangle {
 };
 
 using Shape = std::variant<Sphere, Triangle>;
+using ShapeArr = Shape*;
+using TriangleMeshArr = DeviceTriangleMesh*;
 
 __device__ inline Vector2 get_sphere_uv(const Vector3& p) {
     // p: a given point on the sphere of radius one, centered at the origin.
@@ -80,8 +80,8 @@ __device__ inline std::optional<Intersection> intersect_sphere(const Sphere& s, 
     return v;
 }
 
-__device__ inline std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r, const deviceScene& scene) {
-    const DeviceTriangleMesh &mesh = scene.meshes[tri.mesh_id];
+__device__ inline std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r, const TriangleMeshArr &meshes) {
+    const DeviceTriangleMesh &mesh = meshes[tri.mesh_id];
     const Vector3i &indices = mesh.indices[tri.face_index];
 
     Vector3 v0 = mesh.positions[indices.x];
@@ -169,8 +169,8 @@ __device__ inline PointAndNormal sample_on_shape_sphere(const Sphere &s, const V
     return {point, normal};
 }
 
-__device__ inline PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, RNGf& rng, const deviceScene& scene) {
-    const DeviceTriangleMesh &mesh = scene.meshes[t.mesh_id];
+__device__ inline PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, RNGf& rng, const TriangleMeshArr &meshes) {
+    const DeviceTriangleMesh &mesh = meshes[t.mesh_id];
     const Vector3i &indices = mesh.indices[t.face_index];
 
     Vector3 v0 = mesh.positions[indices.x];
@@ -203,8 +203,8 @@ __device__ inline Real get_area_sphere(const Sphere &s) {
     return 4*c_PI*s.radius*s.radius;
 }
 
-__device__ inline Real get_area_triangle(const Triangle &t, const deviceScene& scene) {
-    const DeviceTriangleMesh &mesh = scene.meshes[t.mesh_id];
+__device__ inline Real get_area_triangle(const Triangle &t, const TriangleMeshArr &meshes) {
+    const DeviceTriangleMesh &mesh = meshes[t.mesh_id];
     const Vector3i &indices = mesh.indices[t.face_index];
 
     Vector3 v0 = mesh.positions[indices.x];
@@ -214,29 +214,29 @@ __device__ inline Real get_area_triangle(const Triangle &t, const deviceScene& s
     return length(cross(v1 - v0, v2 - v0)) / 2;
 }
 
-__device__ inline std::optional<Intersection> intersect_shape(const deviceScene& scene, const Shape& shape, const Ray& r){
+__device__ inline std::optional<Intersection> intersect_shape(const TriangleMeshArr &meshes, const Shape& shape, const Ray& r){
     if(auto *s = std::get_if<Sphere>(&shape))
         return intersect_sphere(*s, r);
     else if(auto *s = std::get_if<Triangle>(&shape))
-        return intersect_triangle(*s, r, scene);
-    else
-        return {};  
-}
-
-__device__ inline PointAndNormal sample_on_shape(const deviceScene& scene, const Shape& shape, const Vector3 &ref_pos, RNGf& rng) {
-    if(auto *s = std::get_if<Sphere>(&shape))
-        return sample_on_shape_sphere(*s, ref_pos, rng);
-    else if(auto *s = std::get_if<Triangle>(&shape))
-        return sample_on_shape_triangle(*s, ref_pos, rng, scene);
+        return intersect_triangle(*s, r, meshes);
     else
         return {};
 }
 
-__device__ inline Real get_area(const deviceScene& scene, const Shape& shape) {
+__device__ inline PointAndNormal sample_on_shape(const TriangleMeshArr &meshes, const Shape& shape, const Vector3 &ref_pos, RNGf& rng) {
+    if(auto *s = std::get_if<Sphere>(&shape))
+        return sample_on_shape_sphere(*s, ref_pos, rng);
+    else if(auto *s = std::get_if<Triangle>(&shape))
+        return sample_on_shape_triangle(*s, ref_pos, rng, meshes);
+    else
+        return {};
+}
+
+__device__ inline Real get_area(const TriangleMeshArr &meshes, const Shape& shape) {
     if(auto *s = std::get_if<Sphere>(&shape))
         return get_area_sphere(*s);
     else if(auto *s = std::get_if<Triangle>(&shape))
-        return get_area_triangle(*s, scene);
+        return get_area_triangle(*s, meshes);
     else
         return 0;
 }
@@ -245,8 +245,11 @@ inline DeviceTriangleMesh device_mesh_init(TriangleMesh &mesh) {
     DeviceTriangleMesh device_mesh;
     Vector3* devicePositions;
     Vector3i* deviceIndices;
-    Vector3* deviceMormals;
+    Vector3* deviceNormals;
     Vector2* deviceUVs;
+
+    device_mesh.area_light_id = mesh.area_light_id;
+    device_mesh.material_id = mesh.material_id;
 
     cudaMalloc((void **)&devicePositions, mesh.positions.size() * sizeof(Vector3));
     cudaMalloc((void **)&deviceIndices,   mesh.indices.size()   * sizeof(Vector3i));
@@ -258,16 +261,16 @@ inline DeviceTriangleMesh device_mesh_init(TriangleMesh &mesh) {
     device_mesh.indices = deviceIndices;
     
     if(!mesh.normals.empty()){
-        cudaMalloc((void **)&deviceMormals,   mesh.normals.size()   * sizeof(Vector3));
-        cudaMemcpy(deviceMormals,   mesh.normals.data(),   mesh.normals.size()   * sizeof(Vector3),  cudaMemcpyHostToDevice);
-        device_mesh.normals = deviceMormals;
+        cudaMalloc((void **)&deviceNormals, mesh.normals.size() * sizeof(Vector3));
+        cudaMemcpy(deviceNormals, mesh.normals.data(), mesh.normals.size() * sizeof(Vector3), cudaMemcpyHostToDevice);
+        device_mesh.normals = deviceNormals;
     }else{
         device_mesh.normals = nullptr;
     }
 
     if(!mesh.uvs.empty()){
-        cudaMalloc((void **)&deviceUVs,       mesh.uvs.size()       * sizeof(Vector2));
-        cudaMemcpy(deviceUVs,       mesh.uvs.data(),       mesh.uvs.size()       * sizeof(Vector2),  cudaMemcpyHostToDevice);
+        cudaMalloc((void **)&deviceUVs, mesh.uvs.size() * sizeof(Vector2));
+        cudaMemcpy(deviceUVs, mesh.uvs.data(), mesh.uvs.size() * sizeof(Vector2), cudaMemcpyHostToDevice);
         device_mesh.uvs = deviceUVs;
     }else{
         device_mesh.uvs = nullptr;

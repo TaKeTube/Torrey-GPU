@@ -1,4 +1,4 @@
-__device__ std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &m,
+__device__ inline std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &m,
                                                               const Vector3 &dir_in,
                                                               const Intersection &v,
                                                               const DeviceTexturePool &texture_pool,
@@ -31,7 +31,7 @@ __device__ std::optional<SampleRecord> sample_bsdf_BlinnPhong(const BlinnPhong &
     return record;
 }
 
-__device__ Real sample_bsdf_pdf_BlinnPhong(const BlinnPhong &m,
+__device__ inline Real sample_bsdf_pdf_BlinnPhong(const BlinnPhong &m,
                                            const Vector3 &dir_in,
                                            const Vector3 &dir_out,
                                            const Intersection &v,
@@ -47,7 +47,7 @@ __device__ Real sample_bsdf_pdf_BlinnPhong(const BlinnPhong &m,
         return (m.exponent + 1) * 0.25 * c_INVTWOPI * pow(dot(n, h), m.exponent) / dot(dir_out, h);
 }
 
-__device__ Vector3 eval_material_BlinnPhong(const BlinnPhong &m,
+__device__ inline Vector3 eval_material_BlinnPhong(const BlinnPhong &m,
                                             const Vector3 &dir_in,
                                             const SampleRecord &record,
                                             const Intersection &v,

@@ -1,4 +1,4 @@
-__device__ std::optional<SampleRecord> sample_bsdf_Phong(const Phong &m,
+__device__ inline std::optional<SampleRecord> sample_bsdf_Phong(const Phong &m,
                                                          const Vector3 &dir_in,
                                                          const Intersection &v,
                                                          const DeviceTexturePool &texture_pool,
@@ -31,7 +31,7 @@ __device__ std::optional<SampleRecord> sample_bsdf_Phong(const Phong &m,
     return record;
 }
 
-__device__ Real sample_bsdf_pdf_Phong(const Phong &m,
+__device__ inline Real sample_bsdf_pdf_Phong(const Phong &m,
                                       const Vector3 &dir_in,
                                       const Vector3 &dir_out,
                                       const Intersection &v,
@@ -47,7 +47,7 @@ __device__ Real sample_bsdf_pdf_Phong(const Phong &m,
         return fmax(Real(0), (m.exponent + 1) / c_TWOPI * pow(dot(reflect_dir, dir_out), m.exponent));
 }
 
-__device__ Vector3 eval_material_Phong(const Phong &m,
+__device__ inline Vector3 eval_material_Phong(const Phong &m,
                                        const Vector3 &dir_in,
                                        const SampleRecord &record,
                                        const Intersection &v,

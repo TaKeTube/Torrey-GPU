@@ -19,17 +19,17 @@
 // for suppressing unused warnings
 #define UNUSED(x) (void)(x)
 
-// #define c_EPSILON 1e-7
+#define c_EPSILON 1e-7
 
-// // Lots of PIs!
-// #define c_PI 3.14159265358979323846
-// #define c_INVPI (1.0 / c_PI)
-// #define c_TWOPI (2.0 * c_PI)
-// #define c_INVTWOPI (1.0 / c_TWOPI)
-// #define c_FOURPI (4.0 * c_PI)
-// #define c_INVFOURPI (1.0 / c_FOURPI)
-// #define c_PIOVERTWO (0.5 * c_PI)
-// #define c_PIOVERFOUR (0.25 * c_PI)
+// Lots of PIs!
+#define c_PI 3.14159265358979323846
+#define c_INVPI (1.0 / c_PI)
+#define c_TWOPI (2.0 * c_PI)
+#define c_INVTWOPI (1.0 / c_TWOPI)
+#define c_FOURPI (4.0 * c_PI)
+#define c_INVFOURPI (1.0 / c_FOURPI)
+#define c_PIOVERTWO (0.5 * c_PI)
+#define c_PIOVERFOUR (0.25 * c_PI)
 
 // We use double for most of our computation.
 // Rendering is usually done in single precision Reals.
@@ -44,17 +44,17 @@ using Real = double;
 constexpr int TILE_WIDTH = 16;
 constexpr int STACK_SIZE = 64;
 
-constexpr Real c_EPSILON = 1e-7;
+// constexpr Real c_EPSILON = 1e-7;
 
-// Lots of PIs!
-constexpr Real c_PI = Real(3.14159265358979323846);
-constexpr Real c_INVPI = Real(1.0) / c_PI;
-constexpr Real c_TWOPI = Real(2.0) * c_PI;
-constexpr Real c_INVTWOPI = Real(1.0) / c_TWOPI;
-constexpr Real c_FOURPI = Real(4.0) * c_PI;
-constexpr Real c_INVFOURPI = Real(1.0) / c_FOURPI;
-constexpr Real c_PIOVERTWO = Real(0.5) * c_PI;
-constexpr Real c_PIOVERFOUR = Real(0.25) * c_PI;
+// // Lots of PIs!
+// constexpr Real c_PI = Real(3.14159265358979323846);
+// constexpr Real c_INVPI = Real(1.0) / c_PI;
+// constexpr Real c_TWOPI = Real(2.0) * c_PI;
+// constexpr Real c_INVTWOPI = Real(1.0) / c_TWOPI;
+// constexpr Real c_FOURPI = Real(4.0) * c_PI;
+// constexpr Real c_INVFOURPI = Real(1.0) / c_FOURPI;
+// constexpr Real c_PIOVERTWO = Real(0.5) * c_PI;
+// constexpr Real c_PIOVERFOUR = Real(0.25) * c_PI;
 
 namespace fs = std::filesystem;
 

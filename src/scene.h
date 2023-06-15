@@ -69,11 +69,11 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
 
     cudaMalloc((void **)&deviceShapes,    scene.shapes.size()    * sizeof(Shape));
     cudaMalloc((void **)&deviceLights,    scene.lights.size()    * sizeof(Light));
-    cudaMalloc((void **)&deviceMaterials, scene.shapes.size()    * sizeof(Material));
+    cudaMalloc((void **)&deviceMaterials, scene.materials.size() * sizeof(Material));
 
     cudaMemcpy(deviceShapes,    scene.shapes.data(),    scene.shapes.size()    * sizeof(Shape),    cudaMemcpyHostToDevice);
     cudaMemcpy(deviceLights,    scene.lights.data(),    scene.lights.size()    * sizeof(Light),    cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceMaterials, scene.shapes.data(),    scene.shapes.size()    * sizeof(Material), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceMaterials, scene.materials.data(), scene.materials.size() * sizeof(Material), cudaMemcpyHostToDevice);
 
     dscene.bvh_root_id = scene.bvh_root_id;
     dscene.shapes = deviceShapes;
@@ -152,27 +152,26 @@ inline void device_scene_destruct(deviceScene& scene, freeInfo& free_info) {
 }
 
 __device__ inline std::optional<Intersection> bvh_intersect(const deviceScene& scene, const BVHNode &node, Ray ray) {
-    /*if (node.primitive_id != -1) {
-        return intersect_shape(scene, scene.shapes[node.primitive_id], ray);
-    }
-    const BVHNode &left = scene.bvh_nodes[node.left_node_id];
-    const BVHNode &right = scene.bvh_nodes[node.right_node_id];
-    std::optional<Intersection> isect_left;
-    if (intersect(left.box, ray)) {
-        isect_left = bvh_intersect(scene, left, ray);
-        if (isect_left) {
-            ray.tmax = isect_left->t;
-        }
-    }
-    if (intersect(right.box, ray)) {
-        // Since we've already set ray.tfar to the left node
-        // if we still hit something on the right, it's closer
-        // and we should return that.
-        if (auto isect_right = bvh_intersect(scene, right, ray)) {
-            return isect_right;
-        }
-    }
-    return isect_left;*/
+    // Recursive version. Which is not recommend in CUDA
+    
+    // if (node.primitive_id != -1) {
+    //     return intersect_shape(scene, scene.shapes[node.primitive_id], ray);
+    // }
+    // const BVHNode &left = scene.bvh_nodes[node.left_node_id];
+    // const BVHNode &right = scene.bvh_nodes[node.right_node_id];
+    // std::optional<Intersection> isect_left;
+    // if (intersect(left.box, ray)) {
+    //     isect_left = bvh_intersect(scene, left, ray);
+    //     if (isect_left) {
+    //         ray.tmax = isect_left->t;
+    //     }
+    // }
+    // if (intersect(right.box, ray)) {
+    //     if (auto isect_right = bvh_intersect(scene, right, ray)) {
+    //         return isect_right;
+    //     }
+    // }
+    // return isect_left;
 
     int node_ptr = 0;
     std::optional<Intersection> intersection = {};
@@ -188,7 +187,7 @@ __device__ inline std::optional<Intersection> bvh_intersect(const deviceScene& s
         
         if(curr_node.primitive_id != -1)
         {
-            std::optional<Intersection> temp_intersection = intersect_shape(scene, scene.shapes[curr_node.primitive_id], ray);
+            std::optional<Intersection> temp_intersection = intersect_shape(scene.meshes, scene.shapes[curr_node.primitive_id], ray);
             if (!intersection || (temp_intersection && temp_intersection->t < intersection->t)) 
                 intersection = std::move(temp_intersection);
         }
@@ -245,15 +244,15 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
         
         if(scene.num_lights > 0 && !is_specular && random_double(rng) <= 0.5){
             // Sampling Light
-            int light_id = sample_light(scene, rng);
+            int light_id = sample_light(scene.num_lights, rng);
             auto light = scene.lights[light_id];
             if (auto* l = std::get_if<DiffuseAreaLight>(&light)) {
-                auto& light_point = sample_on_light(scene, *l, v.pos, rng);
+                auto light_point = sample_on_light(scene.shapes, scene.meshes, *l, v.pos, rng);
                 auto& [light_pos, light_n] = light_point;
                 Real d = length(light_pos - v.pos);
                 Vector3 light_dir = normalize(light_pos - v.pos);
 
-                Real light_pdf = get_light_pdf(scene, light_id, light_point, v.pos) * (d * d) / (fmax(dot(-light_n, light_dir), Real(0)) * scene.num_lights);
+                Real light_pdf = get_light_pdf(scene.lights, scene.shapes, scene.meshes, light_id, light_point, v.pos) * (d * d) / (fmax(dot(-light_n, light_dir), Real(0)) * scene.num_lights);
                 if(light_pdf <= 0){
                     // std::cout << light_pdf << "light pdf break" << std::endl;
                     break;
@@ -305,6 +304,19 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
             if(!new_v_){
                 // std::cout << "bg break" << std::endl;
                 throughput *= FG / pdf;
+
+                // if(throughput.x == 0) {
+                //     if(auto* mm = std::get_if<Diffuse>(&scene.materials[v.material_id])){
+                //         Vector3 cc = eval(mm->reflectance, v.uv, scene.textures);
+                //         if(auto* tt = std::get_if<ConstTexture>(&mm->reflectance)){
+                //             printf("a:%f b:%f e:%f %f %f f:%f %f %f g: %f %f %f %d sb||\n", pdf, FG.x, n.x, n.y, n.z, cc.x, cc.y, cc.z, tt->value.x, tt->value.y, tt->value.z, v.material_id);
+                //         } else if(auto *tt = std::get_if<ImageTexture>(&mm->reflectance)){
+                //             // eval_texture_Image(*tt, v.uv, scene.textures);
+                //             printf("a:%f b:%f c:%f d:%f e:%f %f %f f:%f %f %f nmsl||\n", pdf, FG.x, record.dir_out.x, dir_in.x, n.x, n.y, n.z, cc.x, cc.y, cc.z);
+                //         }
+                //     }
+                // }
+
                 radiance += throughput * scene_info.background_color;
                 break;
             }
@@ -312,7 +324,7 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
                 Vector3 &light_pos = new_v_->pos;
                 Real d = length(light_pos - v.pos);
                 Vector3 light_dir = normalize(light_pos - v.pos);
-                Real light_pdf = get_light_pdf(scene, new_v_->area_light_id, {new_v_->pos, new_v_->geo_normal}, v.pos) * (d * d) / (fmax(dot(-new_v_->geo_normal, light_dir), Real(0)) * scene.num_lights);
+                Real light_pdf = get_light_pdf(scene.lights, scene.shapes, scene.meshes, new_v_->area_light_id, {new_v_->pos, new_v_->geo_normal}, v.pos) * (d * d) / (fmax(dot(-new_v_->geo_normal, light_dir), Real(0)) * scene.num_lights);
                 if(light_pdf <= 0){
                     // std::cout << dot(-new_v_->geo_normal, light_dir) << std::endl;
                     break;
@@ -324,4 +336,50 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
         }
     }
     return radiance;
+}
+
+__device__ inline void debug_log(deviceScene& scene, sceneInfo& scene_info) {
+    
+    printf("scene.bvh_nodes[0].left_node_id: %d\n", scene.bvh_nodes[0].left_node_id);
+    printf("scene.bvh_root_id: %d\n", scene.bvh_root_id);
+
+    Light &l = scene.lights[0];
+    if (auto* ll = std::get_if<PointLight>(&l))
+        printf("l[0] intensity.x: %f\n", ll->intensity.x);
+    else if (auto* ll = std::get_if<DiffuseAreaLight>(&l))
+        printf("l[0] intensity.x: %f\n", ll->intensity.x);
+
+    Material &m = scene.materials[1];
+    if(auto *mm = std::get_if<Diffuse>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else if(auto *mm = std::get_if<Mirror>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else if(auto *mm = std::get_if<Plastic>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else if(auto *mm = std::get_if<Phong>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else if(auto *mm = std::get_if<BlinnPhong>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else if(auto *mm = std::get_if<BlinnPhongMicrofacet>(&m))
+        printf("m[0] color.x: %f\n", eval(mm->reflectance, Vector2{0, 0}, scene.textures).x);
+    else
+        printf("unknown material\n");
+
+    printf("scene.meshes[0].normals[0].xyz: %f %f %f\n", scene.meshes[0].normals[0].x, scene.meshes[0].normals[0].y, scene.meshes[0].normals[0].z);
+    printf("scene.num_lights: %d\n", scene.num_lights);
+
+    Shape &s = scene.shapes[0];
+    if(auto *ss = std::get_if<Sphere>(&s))
+        printf("shape[0] sphere->center.x: %f\n", ss->center.x);
+    else if(auto *ss = std::get_if<Triangle>(&s))
+        printf("shape[0] tri->face_index: %d\n", ss->face_index);
+    else
+        printf("unknown shape\n");
+
+    printf("scene.textures.image3s[0].data[0].x: %f\n", scene.textures.image3s[0].data[0].x);
+
+    printf("scene_info.background_color.x: %f\n", scene_info.background_color.x);
+    printf("scene_info.camera.lookat.x: %f\n", scene_info.camera.lookat.x);
+    printf("scene_info.height: %d\n", scene_info.height);
+    printf("spp: %d\n", scene_info.options.spp);
 }
