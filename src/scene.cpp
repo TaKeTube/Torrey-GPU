@@ -254,7 +254,7 @@ void build_bvh(Scene& scene) {
 }
 
 __device__ std::optional<Intersection> bvh_intersect(const deviceScene& scene, const BVHNode &node, Ray ray) {
-    if (node.primitive_id != -1) {
+    /*if (node.primitive_id != -1) {
         return intersect_shape(scene, scene.shapes[node.primitive_id], ray);
     }
     const BVHNode &left = scene.bvh_nodes[node.left_node_id];
@@ -274,30 +274,33 @@ __device__ std::optional<Intersection> bvh_intersect(const deviceScene& scene, c
             return isect_right;
         }
     }
-    return isect_left;
+    return isect_left;*/
 
-    // TODO modify to for loop
-    //
-    // unsigned int stack[STACK_SIZE];
-    // int stack_ptr = -1;
-    //
-    // int primitive_id;
-    // const BVHNode &curr_node = node;
-    // while(1)
-    // {
-    //     if(node.primitive_id != -1)
-    //     {
-    //         primitive_id = node.primitive_id;
-    //         break;
-    //     }
-            
-    //     const BVHNode &left = scene.bvh_nodes[node.left_node_id];
-    //     const BVHNode &right = scene.bvh_nodes[node.right_node_id];
+    int node_ptr = 0;
+    std::optional<Intersection> intersection = {};
+    unsigned int bvhStack[64];
+    bvhStack[++node_ptr] = scene.bvh_root_id;
 
+    while(node_ptr)
+    {
+        BVHNode curr_node = scene.bvh_nodes[bvhStack[node_ptr--]];
 
-    // }
-    
-    // return intersect_shape(scene.shapes[node.primitive_id], ray);
+        if(!intersect(curr_node.box, ray))
+            continue;
+        
+        if(curr_node.primitive_id != -1)
+        {
+            std::optional<Intersection> temp_intersection = intersect_shape(scene, scene.shapes[curr_node.primitive_id], ray);
+            if (!intersection || (temp_intersection && temp_intersection->t < intersection->t)) 
+                intersection = std::move(temp_intersection);
+        }
+        else
+        {
+            bvhStack[++node_ptr] = curr_node.right_node_id;
+            bvhStack[++node_ptr] = curr_node.left_node_id;
+        }
+    }
+    return intersection;
 }
 
 __device__ std::optional<Intersection> scene_intersect(const deviceScene& scene, const Ray& r){
