@@ -75,16 +75,12 @@ set(SRC
     src/camera.cpp
     src/intersection.h
     src/light.h
-    src/light.cpp
     src/material.h
-    src/material.cpp
     src/ray.h
     src/scene.h
     src/scene.cpp
     src/shape.h
-    src/shape.cpp
     src/texture.h
-    src/texture.cpp
     src/materials/diffuse.inl
     src/materials/mirror.inl
     src/materials/plastic.inl
