@@ -77,7 +77,7 @@ inline std::tuple<deviceScene, freeInfo> device_scene_init(Scene& scene) {
 
     dscene.bvh_root_id = scene.bvh_root_id;
     dscene.shapes = deviceShapes;
-    dscene.lights = deviceLights;  
+    dscene.lights = deviceLights;
     dscene.materials = deviceMaterials;
 
     if(!scene.bvh_nodes.empty()){
@@ -139,6 +139,7 @@ inline void device_scene_destruct(deviceScene& scene, freeInfo& free_info) {
 
     for(auto &m : free_info.device_meshes)
         device_mesh_destruct(m);
+    cudaFree(scene.meshes);
 
     for(auto &img1 : free_info.device_img1s){
         cudaFree(img1.data);
@@ -173,8 +174,36 @@ __device__ inline std::optional<Intersection> bvh_intersect(const deviceScene& s
     // }
     // return isect_left;
 
+    // int node_ptr = 0;
+    // std::optional<Intersection> intersection = {};
+    // unsigned int bvhStack[64];
+    // bvhStack[++node_ptr] = scene.bvh_root_id;
+
+    // while(node_ptr)
+    // {
+    //     BVHNode curr_node = scene.bvh_nodes[bvhStack[node_ptr--]];
+
+    //     if(!intersect(curr_node.box, ray))
+    //         continue;
+        
+    //     if(curr_node.primitive_id != -1)
+    //     {
+    //         std::optional<Intersection> temp_intersection = intersect_shape(scene.meshes, scene.shapes[curr_node.primitive_id], ray);
+    //         if (!intersection || (temp_intersection && temp_intersection->t < intersection->t)) 
+    //             intersection = std::move(temp_intersection);
+    //     }
+    //     else
+    //     {
+    //         bvhStack[++node_ptr] = curr_node.right_node_id;
+    //         bvhStack[++node_ptr] = curr_node.left_node_id;
+    //     }
+    // }
+    // return intersection;
+
     int node_ptr = 0;
-    std::optional<Intersection> intersection = {};
+    bool is_left = true;
+    std::optional<Intersection> intersection;
+    intersection->t = infinity<Real>();
     unsigned int bvhStack[64];
     bvhStack[++node_ptr] = scene.bvh_root_id;
 
@@ -188,16 +217,21 @@ __device__ inline std::optional<Intersection> bvh_intersect(const deviceScene& s
         if(curr_node.primitive_id != -1)
         {
             std::optional<Intersection> temp_intersection = intersect_shape(scene.meshes, scene.shapes[curr_node.primitive_id], ray);
-            if (!intersection || (temp_intersection && temp_intersection->t < intersection->t)) 
+            if(temp_intersection && temp_intersection->t < intersection->t){
                 intersection = std::move(temp_intersection);
+                if(is_left && intersection->t < ray.tmax) ray.tmax = intersection->t;
+            }
+            if(temp_intersection)
+                is_left = false;
         }
         else
         {
             bvhStack[++node_ptr] = curr_node.right_node_id;
             bvhStack[++node_ptr] = curr_node.left_node_id;
+            is_left = true;
         }
     }
-    return intersection;
+    return infinity<Real>() == intersection->t ? std::nullopt : intersection;
 }
 
 __device__ inline std::optional<Intersection> scene_intersect(const deviceScene& scene, const Ray& r){

@@ -36,14 +36,15 @@ __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *
     for (int i = 0; i < options.spp; i++)
     {
         Ray r = {cam.lookfrom,
-                 normalize(
-                     u * ((x + random_double(rng)) / scene_info.width - Real(0.5)) * viewport_width +
-                     v * ((y + random_double(rng)) / scene_info.height - Real(0.5)) * viewport_height -
-                     w),
-                 c_EPSILON,
-                 infinity<Real>()};
+                normalize(
+                    u * ((x + random_double(rng)) / scene_info.width - Real(0.5)) * viewport_width +
+                    v * ((y + random_double(rng)) / scene_info.height - Real(0.5)) * viewport_height -
+                    w),
+                c_EPSILON,
+                infinity<Real>()};
         color += trace_ray(scene, scene_info, r, rng);
     }
+
     color /= Real(options.spp);
 
     // Set output pixel
@@ -118,6 +119,12 @@ Image3 render(const std::vector<std::string> &params)
     // Kernel Init
     dim3 DimGrid(ceil(((float)img.width) / TILE_WIDTH), ceil(((float)img.height) / TILE_WIDTH), 1);
     dim3 DimBlock(TILE_WIDTH, TILE_WIDTH, 1);
+    // dim3 DimGrid(GRID_WIDTH / TILE_WIDTH, GRID_WIDTH / TILE_WIDTH, 1);
+    // dim3 DimBlock(TILE_WIDTH, TILE_WIDTH, 1);
+    // int grid_stride_x = ceil(((float)img.width) / GRID_WIDTH);
+    // int grid_stride_y = ceil(((float)img.height) / GRID_WIDTH);
+
+    cudaFuncSetCacheConfig(render_kernel, cudaFuncCachePreferL1);
 
     // Run kernel
     render_kernel<<<DimGrid, DimBlock>>>(device_scene, scene_info, deviceImg);

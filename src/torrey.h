@@ -42,6 +42,7 @@
 using Real = double;
 
 constexpr int TILE_WIDTH = 16;
+// constexpr int GRID_WIDTH = 512;
 constexpr int STACK_SIZE = 64;
 
 // constexpr Real c_EPSILON = 1e-7;
