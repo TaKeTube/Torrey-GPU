@@ -304,19 +304,6 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
             if(!new_v_){
                 // std::cout << "bg break" << std::endl;
                 throughput *= FG / pdf;
-
-                // if(throughput.x == 0) {
-                //     if(auto* mm = std::get_if<Diffuse>(&scene.materials[v.material_id])){
-                //         Vector3 cc = eval(mm->reflectance, v.uv, scene.textures);
-                //         if(auto* tt = std::get_if<ConstTexture>(&mm->reflectance)){
-                //             printf("a:%f b:%f e:%f %f %f f:%f %f %f g: %f %f %f %d sb||\n", pdf, FG.x, n.x, n.y, n.z, cc.x, cc.y, cc.z, tt->value.x, tt->value.y, tt->value.z, v.material_id);
-                //         } else if(auto *tt = std::get_if<ImageTexture>(&mm->reflectance)){
-                //             // eval_texture_Image(*tt, v.uv, scene.textures);
-                //             printf("a:%f b:%f c:%f d:%f e:%f %f %f f:%f %f %f nmsl||\n", pdf, FG.x, record.dir_out.x, dir_in.x, n.x, n.y, n.z, cc.x, cc.y, cc.z);
-                //         }
-                //     }
-                // }
-
                 radiance += throughput * scene_info.background_color;
                 break;
             }
