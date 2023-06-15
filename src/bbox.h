@@ -15,7 +15,7 @@ struct BBoxWithID {
     int id;
 };
 
-inline bool intersect(const BBox &bbox, Ray r) {
+__device__ inline bool intersect(const BBox &bbox, Ray r) {
     Real t_min = r.tmin;
     Real t_max = r.tmax;
     for (int a = 0; a < 3; a++) {

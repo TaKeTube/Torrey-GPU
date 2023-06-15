@@ -26,7 +26,7 @@ endif()
 find_package(CUDA 10 REQUIRED)
 include(${CMAKE_MODULE_PATH}/CUDAComputesList.cmake)
 
-list(APPEND CUDA_NVCC_FLAGS ${CUDA_GENERATE_CODE} "--std=c++17" "--expt-relaxed-constexpr" "-dc")
+list(APPEND CUDA_NVCC_FLAGS ${CUDA_GENERATE_CODE} "--std=c++17" "--expt-relaxed-constexpr")
 list(APPEND CUDA_NVCC_FLAGS_DEBUG "-g -G")
 set(CUDA_VERBOSE_BUILD ON)
 
@@ -97,4 +97,4 @@ list(SORT SRC)
 source_group(Sources FILES ${SRC})
 cuda_add_executable(${CMAKE_PROJECT_NAME} ${SRC})
 
-target_link_libraries(${CMAKE_PROJECT_NAME} ${CUDA_curand_LIBRARY} ${CUDA_LIBRARIES})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CUDA_curand_LIBRARY} ${CUDA_CUDART_LIBRARY} ${CUDA_LIBRARIES})

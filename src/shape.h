@@ -40,7 +40,6 @@ struct Triangle {
 using Shape = std::variant<Sphere, Triangle>;
 
 __device__ Vector2 get_sphere_uv(const Vector3& p);
-__device__ Vector2 get_triangle_uv();
 
 __device__ std::optional<Intersection> intersect_triangle(const Triangle& tri, const Ray& r, const deviceScene& scene);
 __device__ std::optional<Intersection> intersect_sphere(const Sphere& s, const Ray& r);
