@@ -1,0 +1,172 @@
+<scene version="2.1.0">
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="path">
+		<integer name="max_depth" value="12"/>
+	</integrator>
+	<sensor type="perspective">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="39.597755"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="1000.000000"/>
+		<transform name="toWorld">
+			<lookat target="0.049846, 0.608445, 0.041306" origin="0.202783 0.595800 0.561491" up="0, 1, 0"/>
+		</transform>
+		<sampler type="independent">
+			<integer name="sampleCount" value="256"/>
+		</sampler>
+		<film type="hdrfilm">
+			<integer name="width" value="1920"/>
+			<integer name="height" value="1080"/>
+		</film>
+	</sensor>
+
+	<background>
+		<rgb name="radiance" value="0, 0, 0"/>
+	</background>
+
+<!-- Materials -->
+
+	<bsdf type="diffuse" id="mat-Camera_01_strap">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/Camera_01_strap_diff.png.png"/>
+		</texture>
+	</bsdf>
+	<bsdf type="blinn_microfacet" id="mat-Camera_01_lens_body">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/Camera_01_lens_body_diff_bright.png"/>
+		</texture>
+		<float name="exponent" value="400"/>
+	</bsdf>
+	<bsdf type="mirror" id="mat-Camera_01_lens">
+		<rgb name="reflectance" value="0.200000 0.200000 0.200000"/>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-Camera_01_body">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/Camera_01_body_diff_bright.png"/>
+		</texture>
+	</bsdf>
+	<bsdf type="blinn_microfacet" id="mat-small_wooden_table_01">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/small_wooden_table_01_diff.jpg"/>
+		</texture>
+		<float name="exponent" value="20"/>
+	</bsdf>
+	<bsdf type="diffuse" id="default-bsdf">
+		<bsdf type="diffuse"/>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-PottedPlant_04">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/potted_plant_04_basecolor.png.jpg"/>
+		</texture>
+	</bsdf>
+	<bsdf type="blinn_microfacet" id="mat-russian_food_cans_01">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/russian_food_cans_01_diff.png.jpg"/>
+		</texture>
+		<float name="exponent" value="8"/>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-russian_food_cans_01.001">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/russian_food_cans_01_diff.png.001.jpg"/>
+		</texture>
+	</bsdf>
+	<bsdf type="diffuse" id="raw_plank_wall_diff_2k.001">
+		<texture type="bitmap" name="reflectance">
+			<string name="filename" value="textures/raw_plank_wall_diff_2k.001.jpg"/>
+		</texture>
+	</bsdf>
+
+<!-- Emitters -->
+
+
+<!-- Shapes -->
+
+	<shape type="ply">
+		<string name="filename" value="meshes/Camera_01_strap.ply"/>
+		<transform name="toWorld">
+			<translate y="-0.003"/>
+		</transform>
+		<ref id="mat-Camera_01_strap" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Camera_01-Camera_01_lens_body.ply"/>
+		<transform name="toWorld">
+			<translate y="-0.003"/>
+		</transform>
+		<ref id="mat-Camera_01_lens_body" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Camera_01-Camera_01_lens.ply"/>
+		<transform name="toWorld">
+			<translate y="-0.003"/>
+		</transform>
+		<ref id="mat-Camera_01_lens" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Camera_01-Camera_01_body.ply"/>
+		<transform name="toWorld">
+			<translate y="-0.003"/>
+		</transform>
+		<ref id="mat-Camera_01_body" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Camera_01-Camera_01_strap.ply"/>
+		<transform name="toWorld">
+			<translate y="-0.003"/>
+		</transform>
+		<ref id="mat-Camera_01_strap" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/small_wooden_table_01.ply"/>
+		<ref id="mat-small_wooden_table_01" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/p3.ply"/>
+		<ref id="raw_plank_wall_diff_2k.001" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/potted_plant_04.ply"/>
+		<ref id="mat-PottedPlant_04" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/russian_food_cans_01_salt_box.ply"/>
+		<ref id="mat-russian_food_cans_01" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/russian_food_cans_01_can_fish.ply"/>
+		<ref id="mat-russian_food_cans_01" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/russian_food_cans_01_can_cond.ply"/>
+		<ref id="mat-russian_food_cans_01" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/russian_food_cans_01_can_fish_001.ply"/>
+		<ref id="mat-russian_food_cans_01.001" name="bsdf"/>
+	</shape>
+	<shape type="sphere">
+		<point name="center" x="0.901851" y="0.75138" z="-0.123831"/>
+		<float name="radius" value="0.1"/>
+		<emitter type="area">
+			<rgb name="radiance" value="25, 25, 25"/>
+		</emitter>
+	</shape>
+	<shape type="sphere">
+		<point name="center" x="0.302783" y="0.595800" z="0.361491"/>
+		<float name="radius" value="0.05"/>
+		<emitter type="area">
+			<rgb name="radiance" value="10, 10, 10"/>
+		</emitter>
+	</shape>
+	<shape type="sphere">
+		<point name="center" x="-3.63343" y="2.33865" z="2.36659"/>
+		<float name="radius" value="0.3"/>
+		<emitter type="area">
+			<rgb name="radiance" value="85.0, 25.925,  4.845"/>
+		</emitter>
+	</shape>
+</scene>
