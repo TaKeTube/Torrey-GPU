@@ -2,7 +2,7 @@
 
 A GPU version of CSE 168 Path Tracer Torrey.
 
-![room](https://github.com/TaKeTube/Torrey-GPU/blob/final_scene/room.png?raw=true)
+![room](/final_scene/room.png?raw=true)
 
 **Tested Environment:**
 
