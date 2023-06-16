@@ -251,7 +251,7 @@ __device__ inline bool scene_occluded(const deviceScene& scene, const Ray& r){
     }
 }
 
-__device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& scene_info, const Ray& ray, RNGf& rng){
+__device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& scene_info, const Ray& ray, RNGr& rng){
     Ray r = ray;
     std::optional<Intersection> v_ = scene_intersect(scene, r);
     if(!v_) return scene_info.background_color;
@@ -276,7 +276,7 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
         if(std::holds_alternative<Plastic>(m) || std::holds_alternative<Mirror>(m))
             is_specular = true;
         
-        if(scene.num_lights > 0 && !is_specular && random_double(rng) <= 0.5){
+        if(scene.num_lights > 0 && !is_specular && random_real(rng) <= 0.5){
             // Sampling Light
             int light_id = sample_light(scene.num_lights, rng);
             auto light = scene.lights[light_id];
@@ -312,7 +312,7 @@ __device__ inline Vector3 trace_ray(const deviceScene& scene, const sceneInfo& s
                 if(v.area_light_id == -1){
                     break;
                 }
-                throughput *= FG / (0.5 * light_pdf + 0.5 * bsdf_pdf);
+                throughput *= FG / (Real(0.5) * light_pdf + Real(0.5) * bsdf_pdf);
             }
         }else{
             // Sampling bsdf

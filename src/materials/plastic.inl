@@ -2,7 +2,7 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic 
                                                            const Vector3 &dir_in,
                                                            const Intersection &v,
                                                            const DeviceTexturePool &texture_pool,
-                                                           RNGf &rng) {
+                                                           RNGr &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
@@ -14,7 +14,7 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_Plastic(const Plastic 
     Real F0 = pow((eta - 1)/(eta + 1), 2);
     Real F = F0 + (1 - F0) * pow(1 - dot(n, reflect_dir), 5);
     
-    Real u = random_double(rng);
+    Real u = random_real(rng);
     if(u <= F){
         record.dir_out = reflect_dir;
         record.pdf = Real(1);
@@ -39,7 +39,7 @@ __device__ inline Real sample_bsdf_pdf_Plastic(const Plastic &m,
 
     Real eta = m.eta;
     Real F0 = pow((eta - 1)/(eta + 1), 2);
-    Real F = F0 + (1 - F0) * pow(1 - dot(n, dir_out), 5);
+    Real F = F0 + (1 - F0) * pow(1 - dot(n, dir_out), Real(5));
     return length(normalize(dir_in + dir_out) - n) < c_EPSILON ? Real(F) : (1 - F) * fmax(dot(n, dir_out), Real(0)) / c_PI;
 }
 

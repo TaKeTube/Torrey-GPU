@@ -2,14 +2,14 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_Phong(const Phong &m,
                                                          const Vector3 &dir_in,
                                                          const Intersection &v,
                                                          const DeviceTexturePool &texture_pool,
-                                                         RNGf &rng) {
+                                                         RNGr &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
 
-    Real u1 = random_double(rng);
-    Real u2 = random_double(rng);
+    Real u1 = random_real(rng);
+    Real u2 = random_real(rng);
 
     Real reciprocal_alpha_1 = 1 / (m.exponent + 1);
     Real phi = c_TWOPI * u2;
@@ -61,6 +61,6 @@ __device__ inline Vector3 eval_material_Phong(const Phong &m,
     if (dot(n, record.dir_out) <= 0)
         return {Real(0), Real(0), Real(0)};
     else
-        return Ks*(m.exponent+1)/c_TWOPI*pow(fmax(dot(record.dir_out, reflect_dir), Real(0)), m.exponent);
+        return Ks * (m.exponent+1) / c_TWOPI * pow(fmax(dot(record.dir_out, reflect_dir), Real(0)), m.exponent);
         // return Ks;
 }

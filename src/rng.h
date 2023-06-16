@@ -20,13 +20,13 @@ struct RNG
     curandState state;
 };
 
-using RNGf = RNG<float>;
+using RNGr = RNG<Real>;
 using RNGi = RNG<int>;
 
-__device__ inline double random_double(RNGf &rng) {
+__device__ inline Real random_real(RNGr &rng) {
     return rng();
 }
 
-__device__ inline int random_int(int min, int max, RNGf &rng) {
-    return static_cast<int>(min + (max - min) * random_double(rng));
+__device__ inline int random_int(int min, int max, RNGr &rng) {
+    return static_cast<int>(min + (max - min) * random_real(rng));
 }

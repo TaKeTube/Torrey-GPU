@@ -4,6 +4,7 @@
 #include "vector.h"
 #include "intersection.h"
 #include "ray.h"
+#include "rng.h"
 
 struct ShapeBase {
     int material_id = -1;
@@ -148,9 +149,9 @@ __device__ inline std::optional<Intersection> intersect_triangle(const Triangle&
     }
 }
 
-__device__ inline PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 &ref_pos, RNGf& rng) {
-    Real u1 = random_double(rng);
-    Real u2 = random_double(rng);
+__device__ inline PointAndNormal sample_on_shape_sphere(const Sphere &s, const Vector3 &ref_pos, RNGr& rng) {
+    Real u1 = random_real(rng);
+    Real u2 = random_real(rng);
 
     Real r = s.radius;
     Real d = length(s.center - ref_pos);
@@ -169,7 +170,7 @@ __device__ inline PointAndNormal sample_on_shape_sphere(const Sphere &s, const V
     return {point, normal};
 }
 
-__device__ inline PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, RNGf& rng, const TriangleMeshArr &meshes) {
+__device__ inline PointAndNormal sample_on_shape_triangle(const Triangle &t, const Vector3 &ref_pos, RNGr& rng, const TriangleMeshArr &meshes) {
     const DeviceTriangleMesh &mesh = meshes[t.mesh_id];
     const Vector3i &indices = mesh.indices[t.face_index];
 
@@ -177,8 +178,8 @@ __device__ inline PointAndNormal sample_on_shape_triangle(const Triangle &t, con
     Vector3 v1 = mesh.positions[indices.y];
     Vector3 v2 = mesh.positions[indices.z];
 
-    Real u1 = random_double(rng);
-    Real u2 = random_double(rng);
+    Real u1 = random_real(rng);
+    Real u2 = random_real(rng);
 
     Real b1 = 1 - sqrt(u1);
     Real b2 = sqrt(u1) * u2;
@@ -223,7 +224,7 @@ __device__ inline std::optional<Intersection> intersect_shape(const TriangleMesh
         return {};
 }
 
-__device__ inline PointAndNormal sample_on_shape(const TriangleMeshArr &meshes, const Shape& shape, const Vector3 &ref_pos, RNGf& rng) {
+__device__ inline PointAndNormal sample_on_shape(const TriangleMeshArr &meshes, const Shape& shape, const Vector3 &ref_pos, RNGr& rng) {
     if(auto *s = std::get_if<Sphere>(&shape))
         return sample_on_shape_sphere(*s, ref_pos, rng);
     else if(auto *s = std::get_if<Triangle>(&shape))

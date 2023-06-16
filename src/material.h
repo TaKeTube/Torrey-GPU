@@ -3,6 +3,7 @@
 #include "vector.h"
 #include "intersection.h"
 #include "texture.h"
+#include "rng.h"
 
 struct Diffuse {
     Texture reflectance;
@@ -57,7 +58,7 @@ __device__ std::optional<SampleRecord> sample_bsdf(
     const Vector3 &dir_in,
     const Intersection &v,
     const DeviceTexturePool &pool,
-    RNGf &rng);
+    RNGr &rng);
 
 __device__ Real get_bsdf_pdf(
     const Material &material,
@@ -66,9 +67,9 @@ __device__ Real get_bsdf_pdf(
     const Intersection &v,
     const DeviceTexturePool &pool);
 
-__device__ inline Vector3 sample_hemisphere_cos(RNGf& rng) {
-    Real u1 = random_double(rng);
-    Real u2 = random_double(rng);
+__device__ inline Vector3 sample_hemisphere_cos(RNGr& rng) {
+    Real u1 = random_real(rng);
+    Real u2 = random_real(rng);
     
     Real phi = c_TWOPI * u2;
     Real sqrt_u1 = sqrt(std::clamp(u1, Real(0), Real(1)));
@@ -98,7 +99,7 @@ __device__ inline std::optional<SampleRecord> sample_bsdf(const Material &materi
                                                    const Vector3 &dir_in,
                                                    const Intersection &v,
                                                    const DeviceTexturePool &texture_pool,
-                                                   RNGf &rng) {
+                                                   RNGr &rng) {
     if(auto *m = std::get_if<Diffuse>(&material))
         return sample_bsdf_Diffuse(*m, dir_in, v, texture_pool, rng);
     else if(auto *m = std::get_if<Mirror>(&material))

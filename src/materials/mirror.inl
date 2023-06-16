@@ -2,7 +2,7 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_Mirror(const Mirror &m
                                                           const Vector3 &dir_in,
                                                           const Intersection &v,
                                                           const DeviceTexturePool &texture_pool,
-                                                          RNGf &rng) {
+                                                          RNGr &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
@@ -32,6 +32,6 @@ __device__ inline Vector3 eval_material_Mirror(const Mirror &m,
         return {Real(0), Real(0), Real(0)};
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
     const Vector3& F0 = eval(m.reflectance, v.uv, texture_pool);
-    Vector3 F = F0 + (1 - F0) * pow(1 - dot(n, record.dir_out), 5);
+    Vector3 F = F0 + (1 - F0) * Real(pow(1 - dot(n, record.dir_out), 5));
     return F;
 }

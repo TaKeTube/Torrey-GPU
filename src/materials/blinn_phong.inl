@@ -2,14 +2,14 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_BlinnPhong(const Blinn
                                                               const Vector3 &dir_in,
                                                               const Intersection &v,
                                                               const DeviceTexturePool &texture_pool,
-                                                              RNGf &rng) {
+                                                              RNGr &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
 
-    Real u1 = random_double(rng);
-    Real u2 = random_double(rng);
+    Real u1 = random_real(rng);
+    Real u2 = random_real(rng);
 
     Real reciprocal_alpha_1 = 1 / (m.exponent + 1);
     Real phi = c_TWOPI * u2;
@@ -61,7 +61,7 @@ __device__ inline Vector3 eval_material_BlinnPhong(const BlinnPhong &m,
     else{
         Vector3 h = normalize(record.dir_out + dir_in);
         const Vector3& Ks = eval(m.reflectance, v.uv, texture_pool);
-        Vector3 Fh = Ks + (1 - Ks) * pow(1 - dot(h, record.dir_out), 5);
-        return (m.exponent + 2) * 0.25 *c_INVPI / (2 - pow(2, -m.exponent/2)) * Fh * pow(fmax(Real(0), dot(n, h)), m.exponent);
+        Vector3 Fh = Ks + (1 - Ks) * Real(pow(1 - dot(h, record.dir_out), 5));
+        return (m.exponent + 2) * Real(0.25) * Real(c_INVPI) / (2 - pow(Real(2), -m.exponent/2)) * Fh * pow(fmax(Real(0), dot(n, h)), m.exponent);
     }
 }

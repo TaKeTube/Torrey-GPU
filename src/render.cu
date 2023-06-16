@@ -17,7 +17,7 @@ __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *
         return;
 
     // random number initialization
-    RNG<float> rng(y * scene_info.width + x);
+    RNG<Real> rng(y * scene_info.width + x);
 
     // preparation for ray generation
     Camera &cam = scene_info.camera;
@@ -37,8 +37,8 @@ __global__ void render_kernel(deviceScene scene, sceneInfo scene_info, Vector3 *
     {
         Ray r = {cam.lookfrom,
                 normalize(
-                    u * ((x + random_double(rng)) / scene_info.width - Real(0.5)) * viewport_width +
-                    v * ((y + random_double(rng)) / scene_info.height - Real(0.5)) * viewport_height -
+                    u * ((x + random_real(rng)) / scene_info.width - Real(0.5)) * viewport_width +
+                    v * ((y + random_real(rng)) / scene_info.height - Real(0.5)) * viewport_height -
                     w),
                 c_EPSILON,
                 infinity<Real>()};

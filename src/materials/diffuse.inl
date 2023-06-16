@@ -2,7 +2,7 @@ __device__ inline std::optional<SampleRecord> sample_bsdf_Diffuse(const Diffuse 
                                                            const Vector3 &dir_in,
                                                            const Intersection &v,
                                                            const DeviceTexturePool &texture_pool,
-                                                           RNGf &rng) {
+                                                           RNGr &rng) {
     if (dot(v.geo_normal, dir_in) < 0) {
         return {};
     }
@@ -36,5 +36,5 @@ __device__ inline Vector3 eval_material_Diffuse(const Diffuse &m,
         return {Real(0), Real(0), Real(0)};
     Vector3 n = dot(dir_in, v.shading_normal) < 0 ? -v.shading_normal : v.shading_normal;
     const Vector3& Kd = eval(m.reflectance, v.uv, texture_pool);
-    return Kd * fmax(dot(n, record.dir_out), Real(0)) / c_PI;
+    return Kd * fmax(dot(n, record.dir_out), Real(0)) / Real(c_PI);
 }
