@@ -1,8 +1,10 @@
 # Torrey-GPU
 
-A GPU version of CSE 168 Path Tracer Torrey.
+A GPU version of CSE 168 Path Tracer Torrey. Except the scene parser and the Vector classes, this renderer is implemented from scratch.
 
 ![room](/final_scene/room.png?raw=true)
+
+Original design scene. Using assets from https://polyhaven.com/.
 
 **Tested Environment:**
 
@@ -16,3 +18,12 @@ A GPU version of CSE 168 Path Tracer Torrey.
 
 - CUDA 11.x
 - CMake
+
+**Key Features**
+
+- Bounding volume hierarchies
+- Textures
+- Monte Carlo path tracing
+- Microfacet BRDFs
+- Multiple importance sampling
+- CUDA acceleration
